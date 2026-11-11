@@ -238,6 +238,52 @@ bash build.sh out.apk      # свой путь
 
 Внешних зависимостей нет — только `android.webkit`, `android.os` и т.п.
 
+## Настройка приложения (имя, иконка, URL, ключ)
+
+Отдельный инструмент — `tools/app_config.sh`:
+
+```bash
+bash tools/app_config.sh            # интерактивное меню
+bash tools/app_config.sh --show     # текущая конфигурация
+```
+
+| Ключ | Что меняет | Где лежит результат |
+|---|---|---|
+| `--name "Текст"` | имя приложения в лаунчере | `res/values/strings.xml` |
+| `--icon файл.png` | иконка приложения | `res/mipmap-*/ic_launcher.png` + манифест |
+| `--icon файл.xml` | иконка-вектор | `res/drawable/ic_launcher.xml` + манифест |
+| `--icon-make "#4C8DFF"` | сгенерировать иконку заданным цветом | через `tools/make_icon.py` |
+| `--control URL` | адрес control-указателя | `settings.json` **и** `RemoteSettings.DEFAULT_CONTROL_URL` |
+| `--index URL` | адрес индексной страницы | `settings.json` (`indexUrl`) |
+| `--settings-url URL` | адрес файла настроек | `settings.json` + `DEFAULT_SETTINGS_URL` |
+| `--error-url URL` | адрес страницы 404 | `settings.json` (`errorPageUrl`) |
+| `--password-url URL` | адрес файла с хэшем пароля | `settings.json` + `DEFAULT_PASSWORD_URL` |
+| `--title "Текст"` | **текст верхней панели внутри приложения** | `settings.json` (`title`) |
+| `--new-key --key-pass ПАРОЛЬ` | новый ключ подписи | `keystore/control.jks` (старый → `.bak-*`) |
+| `--package com.my.app` | идентификатор приложения | манифест, `app/build.gradle`, пакеты Java |
+| `--version 2.0 --version-code 7` | версия | `AndroidManifest.xml` |
+| `--build` / `--build-all` | пересборка APK | `app.apk`, `app-debug.apk`, `app-android10.apk` |
+
+Примеры:
+
+```bash
+bash tools/app_config.sh --name "Tornado" --icon ~/Pictures/logo.png --build
+bash tools/app_config.sh --control https://example.com/control \
+                          --index https://example.com/ --title "Мой сайт" --build
+bash tools/app_config.sh --new-key --key-pass secret --build
+```
+
+**Важно различать три разных «имени»:**
+
+1. **Имя в лаунчере** (под иконкой) — `app_name` в `strings.xml` (`--name`).
+2. **Заголовок верхней панели внутри приложения** — удалённая настройка `title`
+   в `settings.json` (`--title` или руками на GitHub), либо локально в настройках.
+3. **`<title>` страницы** — то, что видно в браузере; приложение подставляет
+   свой заголовок, если задан `title`.
+
+При смене ключа подписи старое приложение нужно **удалить** с телефона, иначе
+установка упадёт с конфликтом подписи.
+
 ## Проверка возможностей
 
 Страница `selftest.html` проверяет весь мост и лежит:

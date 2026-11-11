@@ -49,6 +49,7 @@
             android:icon="@mipmap/ic_launcher_light"
             android:roundIcon="@mipmap/ic_launcher_light"
             android:label="@string/app_name_light"
+            android:enabled="false"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -62,6 +63,7 @@
             android:icon="@mipmap/ic_launcher_dark"
             android:roundIcon="@mipmap/ic_launcher_dark"
             android:label="@string/app_name_dark"
+            android:enabled="false"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -75,6 +77,7 @@
             android:icon="@mipmap/ic_launcher_beta"
             android:roundIcon="@mipmap/ic_launcher_beta"
             android:label="@string/app_name_beta"
+            android:enabled="false"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

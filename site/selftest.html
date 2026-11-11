@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Tornado Control — проверка всех возможностей</title>
+    <style>
+        :root { color-scheme: dark; }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; padding: 14px;
+            background: #0E1116; color: #E6EAF2;
+            font-family: -apple-system, Roboto, "Segoe UI", system-ui, sans-serif;
+            font-size: 14px;
+        }
+        h1 { font-size: 17px; margin: 0 0 2px; }
+        .sub { color: #8A94A6; font-size: 12px; margin: 0 0 12px; line-height: 1.45; }
+        .badge {
+            display: inline-block; padding: 2px 8px; border-radius: 6px;
+            font-size: 11px; font-weight: 600; margin-left: 6px;
+        }
+        .ok  { background: rgba(46,160,67,.18); color: #5BD07A; }
+        .err { background: rgba(255,82,82,.18); color: #FF7A7A; }
+        .wa  { background: rgba(255,183,77,.18); color: #FFB74D; }
+        section { margin: 0 0 14px; }
+        h2 {
+            font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
+            color: #6E7A8C; margin: 0 0 6px; font-weight: 700;
+        }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+        button {
+            background: #171B24; color: #E6EAF2; border: 1px solid #262D3A;
+            padding: 12px 8px; border-radius: 10px; font-size: 13px; cursor: pointer;
+            text-align: left;
+        }
+        button:active { background: #1F2632; }
+        button.primary { background: #4C8DFF; border-color: #4C8DFF; color: #fff; font-weight: 600; }
+        button.danger { background: #3A1E22; border-color: #5A2A30; color: #FF9A9A; }
+        pre {
+            background: #12161E; border: 1px solid #232B38; border-radius: 10px;
+            padding: 10px; font-size: 11px; overflow: auto; max-height: 300px;
+            color: #A8B3C4; margin: 0; white-space: pre-wrap; word-break: break-word;
+        }
+        #summary { margin: 0 0 14px; }
+        .row { display: flex; align-items: center; gap: 8px; padding: 5px 0;
+               border-bottom: 1px solid #1A1F29; font-size: 13px; }
+        .row:last-child { border-bottom: 0; }
+        .row .name { flex: 1; }
+        .row .val { color: #8A94A6; font-size: 11px; max-width: 55%; overflow: hidden;
+                    text-overflow: ellipsis; white-space: nowrap; }
+    </style>
+</head>
+<body>
+
+<h1>Проверка возможностей <span class="badge" id="mode">…</span></h1>
+<p class="sub">
+    Нажмите «Автотест» — он последовательно вызовет все методы моста
+    <code>window.Android</code> и покажет результат. Отдельные кнопки ниже вызывают
+    каждый метод по одному.
+</p>
+
+<div class="grid" style="margin-bottom:14px">
+    <button class="primary" onclick="runAll()">Автотест всех функций</button>
+    <button onclick="clearLog()">Очистить лог</button>
+</div>
+
+<div id="summary"></div>
+
+<section>
+    <h2>Вибрация</h2>
+    <div class="grid3">
+        <button onclick="t('vibrate',[30])">30 мс</button>
+        <button onclick="t('vibrate',[150])">150 мс</button>
+        <button onclick="t('vibrate',[800])">800 мс</button>
+        <button onclick="t('vibratePattern',['[0,40,80,40]'])" style="grid-column:span 2">Паттерн [0,40,80,40]</button>
+        <button onclick="t('vibratePatternRepeat',['[0,40]',2])">Паттерн ×2</button>
+        <button onclick="t('vibrateEffect',['heavy'])">heavy</button>
+        <button onclick="t('vibrateEffect',['tick'])">tick</button>
+        <button onclick="t('vibrateEffect',['notification'])">notification</button>
+        <button onclick="t('vibrateEffect',['success'])">success</button>
+        <button onclick="t('vibrateEffect',['error'])">error</button>
+        <button onclick="t('cancelVibration',[])">Отменить</button>
+        <button onclick="t('hasVibrator',[])">Есть мотор?</button>
+    </div>
+</section>
+
+<section>
+    <h2>Интерфейс</h2>
+    <div class="grid">
+        <button onclick="t('toast',['Привет из JS!'])">Toast</button>
+        <button onclick="t('setTitle',['Заголовок из JS'])">Сменить заголовок</button>
+        <button onclick="t('setStatusBarColor',['#1B6E3C'])">Статус-бар зелёный</button>
+        <button onclick="t('setStatusBarColor',['#171B24'])">Статус-бар тёмный</button>
+        <button onclick="t('copy',['Скопировано из JS'])">Копировать</button>
+        <button onclick="t('share',['Проверка моста','Tornado Control'])">Поделиться</button>
+        <button onclick="t('notify',['Tornado Control','Уведомление из JS'])">Уведомление</button>
+        <button onclick="t('openUrl',['https://github.com'])">Открыть ссылку</button>
+    </div>
+</section>
+
+<section>
+    <h2>Состояние</h2>
+    <div class="grid">
+        <button onclick="show('getDeviceInfo')">getDeviceInfo</button>
+        <button onclick="show('getSettings')">getSettings</button>
+        <button onclick="show('getIndexUrl')">getIndexUrl</button>
+        <button onclick="show('getControlUrl')">getControlUrl</button>
+        <button onclick="show('getErrorPageUrl')">getErrorPageUrl</button>
+        <button onclick="show('isOnline')">isOnline</button>
+        <button onclick="t('reload',[])">reload</button>
+        <button onclick="t('refresh',[])">refresh</button>
+        <button onclick="t('showSettings',[])">showSettings</button>
+        <button onclick="t('log',['сообщение из теста'])">log()</button>
+    </div>
+</section>
+
+<section>
+    <h2>Опасное</h2>
+    <div class="grid">
+        <button class="danger" onclick="t('exitApp',[])">exitApp</button>
+        <button class="danger" onclick="if(confirm('Выйти из приложения?')) Android.exitApp()">Выйти (с подтверждением)</button>
+    </div>
+</section>
+
+<section>
+    <h2>Лог</h2>
+    <pre id="log">—</pre>
+</section>
+
+<script>
+var A = window.Android || window.Native || null;
+var out = document.getElementById('log');
+var lines = [];
+var results = [];
+
+function log(s) {
+    lines.push(s);
+    out.textContent = lines.join('\n');
+}
+
+function setMode() {
+    var m = document.getElementById('mode');
+    if (A && typeof A.vibrate === 'function') {
+        m.textContent = 'native bridge';
+        m.className = 'badge ok';
+    } else {
+        m.textContent = 'bridge недоступен (страница открыта в браузере?)';
+        m.className = 'badge err';
+    }
+}
+
+function call(fn, args) {
+    if (!A) return { ok: false, error: 'мост недоступен' };
+    try {
+        if (typeof A[fn] !== 'function') return { ok: false, error: 'метод не найден: ' + fn };
+        var v = A[fn].apply(A, args || []);
+        return { ok: true, value: v };
+    } catch (e) {
+        return { ok: false, error: String(e) };
+    }
+}
+
+// вызов с проверкой результата
+function t(fn, args) {
+    var r = call(fn, args);
+    if (r.ok) {
+        log('✓ ' + fn + (args && args.length ? '(' + args.join(', ') + ')' : '') +
+            (r.value === undefined ? '' : ' → ' + r.value));
+    } else {
+        log('✗ ' + fn + ' → ' + r.error);
+    }
+    return r;
+}
+
+// вызов с выводом значения
+function show(fn) {
+    var r = call(fn, []);
+    if (!r.ok) { log('✗ ' + fn + ' → ' + r.error); return; }
+    var v = r.value;
+    if (typeof v === 'string' && v.length > 1 && (v[0] === '{' || v[0] === '[')) {
+        try { v = JSON.stringify(JSON.parse(v), null, 2); } catch (e) {}
+    }
+    log('✓ ' + fn + ':\n' + v);
+}
+
+function clearLog() {
+    lines = [];
+    out.textContent = '—';
+    document.getElementById('summary').innerHTML = '';
+    results = [];
+}
+
+function mark(name, ok, note) {
+    results.push({ name: name, ok: ok, note: note || '' });
+    render();
+}
+
+function render() {
+    var ok = results.filter(function (r) { return r.ok; }).length;
+    var html = '<div class="row"><span class="name">Проверено</span>' +
+        '<span class="badge ' + (ok === results.length ? 'ok' : 'wa') + '">' +
+        ok + ' / ' + results.length + '</span></div>';
+    results.forEach(function (r) {
+        html += '<div class="row"><span class="name">' + r.name + '</span>' +
+            '<span class="val">' + (r.note || '') + '</span>' +
+            '<span class="badge ' + (r.ok ? 'ok' : 'err') + '">' + (r.ok ? 'OK' : 'нет') + '</span></div>';
+    });
+    document.getElementById('summary').innerHTML = html;
+}
+
+// ---------------------------------------------------------------- автотест
+function runAll() {
+    clearLog();
+    log('=== Автотест: ' + new Date().toLocaleTimeString() + ' ===');
+    setMode();
+
+    // --- вибрация
+    var r = t('hasVibrator', []);
+    mark('hasVibrator', r.ok, String(r.value));
+    r = t('vibrate', [30]);
+    mark('vibrate(30)', r.ok, '');
+    r = t('vibratePattern', ['[0,40,80,40]']);
+    mark('vibratePattern', r.ok, '');
+    r = t('vibratePatternRepeat', ['[0,40]', 2]);
+    mark('vibratePatternRepeat', r.ok, '');
+    ['click', 'tick', 'heavy', 'notification', 'success', 'error'].forEach(function (e) {
+        var x = t('vibrateEffect', [e]);
+        mark('vibrateEffect(' + e + ')', x.ok, '');
+    });
+    t('cancelVibration', []);
+
+    // --- интерфейс
+    t('toast', ['Автотест: Toast работает']);
+    mark('toast', true, '');
+    t('setTitle', ['Tornado (автотест)']);
+    mark('setTitle', true, '');
+    t('setStatusBarColor', ['#4C8DFF']);
+    mark('setStatusBarColor', true, '');
+    t('setStatusBarColor', ['#171B24']);
+    t('copy', ['скопировано автотестом']);
+    mark('copy', true, '');
+    t('log', ['автотест: запись в logcat']);
+
+    // --- состояние
+    var info = call('getDeviceInfo', []);
+    if (info.ok) {
+        try {
+            var d = JSON.parse(info.value);
+            log('  модель: ' + d.model + ', Android ' + d.androidVersion +
+                ' (SDK ' + d.sdk + '), online=' + d.online);
+            mark('getDeviceInfo', true, d.model + ' / SDK ' + d.sdk);
+        } catch (e) {
+            log('  getDeviceInfo вернул не JSON: ' + info.value);
+            mark('getDeviceInfo', false, 'не JSON');
+        }
+    } else {
+        mark('getDeviceInfo', false, info.error);
+    }
+
+    var st = call('getSettings', []);
+    if (st.ok) {
+        try {
+            var s = JSON.parse(st.value);
+            log('  настройки: control=' + s.controlUrl + ', настроек=' + s.settingsEnabled +
+                ', заголовок="' + s.title + '"');
+            mark('getSettings', true, 'settingsEnabled=' + s.settingsEnabled);
+        } catch (e) {
+            mark('getSettings', false, 'не JSON');
+        }
+    } else {
+        mark('getSettings', false, st.error);
+    }
+
+    var iv = call('getIconVariants', []);
+    mark('getIconVariants', iv.ok, '');
+    var ic = call('getIconVariant', []);
+    mark('getIconVariant', ic.ok, String(ic.value));
+    var ivr = call('setIconVariant', ['default']);
+    mark('setIconVariant(default)', ivr.ok, '');
+
+    var io = call('isOnline', []);
+    mark('isOnline', io.ok, String(io.value));
+    t('getIndexUrl', []);
+    t('getControlUrl', []);
+    t('getErrorPageUrl', []);
+
+    // --- проверка веб-части
+    mark('JS активен', true, navigator.userAgent.slice(0, 28));
+    mark('navigator.onLine', true, String(navigator.onLine));
+
+    log('');
+    log('=== Готово. Проверено ' + results.length + ' пунктов ===');
+    log('Не вызывал автоматически: showSettings (спросит пароль), notify, share,');
+    log('openUrl, reload, refresh, exitApp — они меняют состояние приложения.');
+}
+
+setMode();
+</script>
+</body>
+</html>

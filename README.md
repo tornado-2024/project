@@ -210,12 +210,25 @@ TornadoControl/
 ```bash
 pkg install aapt2 apksigner d8
 # android.jar: platforms/android-33 (API 33)
-bash build.sh            # -> app.apk
+# d8 из build-tools 36+ (умеет javac 21 без вырезания атрибутов)
+
+bash build.sh              # -> app.apk          release, targetSdk 33
+bash build.sh --debug      # -> app-debug.apk    android:debuggable=true + логи в файл
+bash build.sh --android10  # -> app-android10.apk  targetSdk 29 (Android 10)
+bash build.sh out.apk      # свой путь
 ```
 
+Все варианты имеют `minSdk 24` (Android 7+) и подписываются одним ключом, поэтому
+ставить их можно друг поверх друга.
+
 Шаги: `aapt2 compile` → `aapt2 link` → `javac --release 8` →
-`tools/strip_method_params.py` (вырезает атрибут `MethodParameters`, из-за которого
-старые d8/R8 падают на javac 21) → `d8` → `jar` → `apksigner` (v2+v3).
+`d8` (при необходимости — с вырезанием `MethodParameters` для старых d8) →
+`jar` → `apksigner` (v2+v3).
+
+> Важно: dex собирается **без модификаций** class-файлов. Раньше атрибут
+> `MethodParameters` вырезался скриптом, и такой dex проходил проверку d8, но
+> падал на ART-верификаторе при установке release-сборки
+> (`INSTALL_FAILED_DEXOPT` → «Приложение не установлено»).
 
 ### Android Studio / Gradle
 
@@ -224,6 +237,20 @@ bash build.sh            # -> app.apk
 ```
 
 Внешних зависимостей нет — только `android.webkit`, `android.os` и т.п.
+
+## Проверка возможностей
+
+Страница `selftest.html` проверяет весь мост и лежит:
+
+* в assets приложения → открыть через настройки (⚙ → адрес
+  `file:///android_asset/app/selftest.html`);
+* на сайте → https://tornado-2024.github.io/site/selftest.html
+
+Кнопка «Автотест» последовательно вызывает все методы `window.Android`
+(вибрация всех видов, toast, заголовок, цвет статус-бара, буфер обмена,
+уведомления, `getDeviceInfo`, `getSettings`, `isOnline` и т.д.) и показывает
+сводку «OK / нет» по каждому пункту. Опасные вызовы (`showSettings`, `refresh`,
+`reload`, `exitApp`) вынесены в отдельные кнопки.
 
 ## Установка
 

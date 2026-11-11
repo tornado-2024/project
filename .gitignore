@@ -10,3 +10,8 @@ local.properties
 # локальные секреты
 .last_generated_password
 password_plain.txt
+
+# служебные файлы харнесса/сборки
+tmp/
+bin/
+*.idsig

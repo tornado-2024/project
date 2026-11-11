@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Tornado Control</string>
+    <string name="app_name_debug">Tornado Control (debug)</string>
+    <string name="app_name_android10">Tornado Control (Android 10)</string>
     <string name="badge_offline">OFFLINE</string>
     <string name="refresh">Обновить</string>
     <string name="settings">Настройки</string>

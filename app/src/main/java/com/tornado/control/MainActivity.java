@@ -118,6 +118,9 @@ public class MainActivity extends Activity {
     private void initApp() {
         prefs = new Prefs(this);
         cache = new CacheStore(this);
+        Log2File.init(this);
+        Log2File.i(TAG, "старт приложения, debug=" + Log2File.isEnabled()
+                + (Log2File.path() == null ? "" : ", лог: " + Log2File.path()));
 
         setContentView(R.layout.activity_main);
         topBar = findViewById(R.id.topbar);
@@ -239,7 +242,9 @@ public class MainActivity extends Activity {
     private class AppWebChromeClient extends WebChromeClient {
         @Override
         public boolean onConsoleMessage(ConsoleMessage cm) {
-            Log.i(TAG, "JS[" + cm.messageLevel() + "] " + cm.message() + " @" + cm.lineNumber());
+            String msg = "JS[" + cm.messageLevel() + "] " + cm.message() + " @" + cm.lineNumber();
+            Log.i(TAG, msg);
+            Log2File.i("JS", cm.message() + "  (" + cm.sourceId() + ":" + cm.lineNumber() + ")");
             return true;
         }
     }
@@ -347,6 +352,25 @@ public class MainActivity extends Activity {
     /* ------------------------------------------------------------------ */
 
     public void refresh() {
+        // Локальный режим (для тестов и офлайн-демо): file:///android_asset/app/demo.html
+        final String localControl = prefs.controlUrlOverride();
+        if (localControl.startsWith(ASSET_PREFIX)) {
+            final String assetPath = localControl.substring(ASSET_PREFIX.length());
+            final String html = readAsset(assetPath);
+            progress.setVisibility(View.GONE);
+            setOffline(false);
+            if (html == null) {
+                setStatus("Ассет не найден: " + assetPath, true);
+                showFallback("asset not found", false);
+                return;
+            }
+            Log2File.i(TAG, "локальный режим: " + assetPath);
+            web.loadDataWithBaseURL(localControl, html, "text/html", "utf-8", null);
+            setStatus("Локальный режим · " + assetPath, false);
+            return;
+        }
+
+        Log2File.i(TAG, "refresh: control=" + localControl);
         setStatus("Загрузка…", false);
         progress.setVisibility(View.VISIBLE);
 
@@ -405,10 +429,15 @@ public class MainActivity extends Activity {
             ui.post(() -> {
                 progress.setVisibility(View.GONE);
                 applySettings(fs);
+                Log2File.i(TAG, "настройки приняты: control=" + fs.controlUrl
+                        + ", индекс=" + fIndexUrl + ", раздел настроек=" + fs.settingsEnabled
+                        + ", пароль=" + fs.passwordUrl);
                 if (!fIndexUrl.isEmpty()) prefs.setLastIndexUrl(fIndexUrl);
                 if (!fErrorUrl.isEmpty()) prefs.setLastErrorPageUrl(fErrorUrl);
 
                 if (fIndex != null && fIndex.isOk()) {
+                    Log2File.i(TAG, "индекс загружен: HTTP " + fIndex.status
+                            + ", " + fIndex.body.length + " байт");
                     if (fs.cacheEnabled) {
                         cache.put(fIndexUrl, fIndex.status, HttpClient.mimeOf(fIndex.contentType),
                                 HttpClient.charsetOf(fIndex.contentType), fIndex.body);
@@ -437,6 +466,7 @@ public class MainActivity extends Activity {
                 String reason = (fIndex == null)
                         ? "нет соединения"
                         : (fIndex.networkError ? "нет соединения" : ("HTTP " + fIndex.status));
+                Log2File.i(TAG, "индекс недоступен: " + reason);
                 showFallback(reason, fIndex == null || fIndex.networkError);
             });
         });

@@ -355,6 +355,7 @@ public class JsBridge {
     @JavascriptInterface
     public void log(String message) {
         Log.i(TAG, message == null ? "" : message);
+        Log2File.i("JS", message == null ? "" : message);
     }
 
     /** Закрыть приложение. */

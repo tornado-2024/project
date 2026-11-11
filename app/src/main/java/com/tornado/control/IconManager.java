@@ -90,7 +90,7 @@ public final class IconManager {
         if (cls == null) return false;
         try {
             PackageManager pm = ctx.getPackageManager();
-            int state = pm.getComponentEnabledSetting(new ComponentName(ctx.getPackageName(), cls));
+            int state = pm.getComponentEnabledSetting(ComponentName.createRelative(ctx, cls));
             return state != PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
         } catch (Exception e) {
             return false;
@@ -133,7 +133,7 @@ public final class IconManager {
             String pkg = ctx.getPackageName();
             if ("all".equals(v)) {
                 for (String id : VARIANTS.keySet()) {
-                    set(pm, pkg, VARIANTS.get(id), true);
+                    set(ctx, pm, pkg, VARIANTS.get(id), true);
                 }
                 Log.i(TAG, "включены все варианты иконки");
                 Log2File.i(TAG, "иконки: включены все варианты");
@@ -141,12 +141,18 @@ public final class IconManager {
             }
             if (!VARIANTS.containsKey(v)) return false;
             // сначала включаем нужный, потом выключаем остальные (чтобы не остаться без иконки)
-            set(pm, pkg, VARIANTS.get(v), true);
+            set(ctx, pm, pkg, VARIANTS.get(v), true);
             for (String id : VARIANTS.keySet()) {
-                if (!id.equals(v)) set(pm, pkg, VARIANTS.get(id), false);
+                if (!id.equals(v)) set(ctx, pm, pkg, VARIANTS.get(id), false);
             }
-            Log.i(TAG, "активная иконка: " + v);
-            Log2File.i(TAG, "иконка переключена: " + v);
+            // страховка: приложение должно остаться запускаемым из лаунчера
+            if (countEnabled(ctx) == 0) {
+                Log.w(TAG, "не осталось включённых иконок — возвращаю дефолтную");
+                Log2File.i(TAG, "страховка: включаю дефолтную иконку");
+                set(ctx, pm, pkg, VARIANTS.get("default"), true);
+            }
+            Log.i(TAG, "активная иконка: " + v + ", включено вариантов: " + countEnabled(ctx));
+            Log2File.i(TAG, "иконка переключена: " + v + " (включено: " + countEnabled(ctx) + ")");
             return true;
         } catch (Exception e) {
             Log.w(TAG, "не удалось переключить иконку", e);
@@ -155,13 +161,18 @@ public final class IconManager {
         }
     }
 
-    private static void set(PackageManager pm, String pkg, String cls, boolean enabled) {
+    private static void set(Context ctx, PackageManager pm, String pkg, String cls, boolean enabled) {
         try {
             int state = enabled
                     ? PackageManager.COMPONENT_ENABLED_STATE_ENABLED
                     : PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
-            pm.setComponentEnabledSetting(new ComponentName(pkg, cls), state,
+            pm.setComponentEnabledSetting(ComponentName.createRelative(ctx, cls), state,
                     PackageManager.DONT_KILL_APP);
+            // проверяем, что состояние действительно применилось
+            int now = pm.getComponentEnabledSetting(ComponentName.createRelative(ctx, cls));
+            Log.i(TAG, "setComponentEnabledSetting " + cls + " -> " + state
+                    + ", фактически: " + now);
+            Log2File.i(TAG, "иконка " + cls + ": задано " + state + ", фактически " + now);
         } catch (Exception e) {
             Log.w(TAG, "setComponentEnabledSetting " + cls, e);
         }

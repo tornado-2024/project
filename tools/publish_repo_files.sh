@@ -14,6 +14,7 @@
 set -euo pipefail
 
 CONTROL="https://raw.githubusercontent.com/tornado-2024/project/refs/heads/main/control"
+SETTINGS_URL="https://raw.githubusercontent.com/tornado-2024/project/refs/heads/main/settings.json"
 PASSWORD_URL="https://raw.githubusercontent.com/tornado-2024/project/refs/heads/main/password"
 TITLE=""
 PASSWORD=""
@@ -31,6 +32,7 @@ die()  { printf '\033[1;31m[x]\033[0m %s\n' "$*" >&2; exit 1; }
 while [ $# -gt 0 ]; do
     case "$1" in
         --control)        CONTROL="${2:-}"; shift 2 ;;
+        --settings-url)   SETTINGS_URL="${2:-}"; shift 2 ;;
         --password-url)   PASSWORD_URL="${2:-}"; shift 2 ;;
         --title)          TITLE="${2:-}"; shift 2 ;;
         --password)       PASSWORD="${2:-}"; shift 2 ;;
@@ -58,6 +60,7 @@ say "создание $OUT_DIR/$SETTINGS_FILE"
 cat > "$OUT_DIR/$SETTINGS_FILE" <<EOF
 {
   "controlUrl": "$CONTROL",
+  "settingsUrl": "$SETTINGS_URL",
   "indexUrl": "",
   "errorPageUrl": "",
   "passwordUrl": "$PASSWORD_URL",

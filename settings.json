@@ -1,5 +1,6 @@
 {
   "controlUrl": "https://raw.githubusercontent.com/tornado-2024/project/refs/heads/main/control",
+  "settingsUrl": "https://raw.githubusercontent.com/tornado-2024/project/refs/heads/main/settings.json",
   "indexUrl": "",
   "errorPageUrl": "",
   "passwordUrl": "https://raw.githubusercontent.com/tornado-2024/project/refs/heads/main/password",

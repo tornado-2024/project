@@ -157,6 +157,53 @@
     </div>
 
     <div class="card">
+        <h2>Поведение приложения</h2>
+
+        <div class="switch">
+            <label>Полноэкранный режим
+                <span class="hint">fullscreen — прятать статус-бар системы</span></label>
+            <input type="checkbox" id="fullscreen">
+        </div>
+        <div class="switch">
+            <label>Не гасить экран
+                <span class="hint">keepScreenOn</span></label>
+            <input type="checkbox" id="keepScreenOn">
+        </div>
+        <div class="switch">
+            <label>Разрешить масштабирование
+                <span class="hint">allowZoom — pinch-zoom страницы</span></label>
+            <input type="checkbox" id="allowZoom">
+        </div>
+        <div class="switch">
+            <label>Внешние ссылки — в браузере
+                <span class="hint">openLinksExternally</span></label>
+            <input type="checkbox" id="openLinksExternally">
+        </div>
+        <div class="switch">
+            <label>Скрыть нижнюю строку статуса
+                <span class="hint">hideStatusLine</span></label>
+            <input type="checkbox" id="hideStatusLine">
+        </div>
+        <div class="switch">
+            <label>Разрешить JS-мост
+                <span class="hint">enableBridge — доступ страницы к window.Android</span></label>
+            <input type="checkbox" id="enableBridge" checked>
+        </div>
+
+        <label class="f">Автообновление, секунд (0 — выключено)</label>
+        <input type="number" id="refreshIntervalSec" value="0" min="0" step="10">
+
+        <label class="f">Лимит кэша, МБ (0 — по умолчанию 64)</label>
+        <input type="number" id="maxCacheSizeMb" value="0" min="0" step="8">
+
+        <label class="f">Повторов запроса при ошибке сети</label>
+        <input type="number" id="retryCount" value="0" min="0" max="5">
+
+        <label class="f">Белый список доменов (через запятую, пусто — все)</label>
+        <input type="text" id="allowedHosts" placeholder="tornado-2024.github.io, example.com">
+    </div>
+
+    <div class="card">
         <h2>Пароль для раздела настроек</h2>
         <label class="f">Пароль (в репозиторий попадёт только sha256)</label>
         <div class="row2">
@@ -200,14 +247,21 @@ function toast(t) {
 }
 
 var FIELDS = ['title', 'statusBarColor', 'accentColor', 'theme', 'controlUrl', 'settingsUrl',
-              'indexUrl', 'errorPageUrl', 'passwordUrl', 'timeoutMs', 'userAgent'];
-var BOOLS = ['settingsEnabled', 'requirePassword', 'showHeader', 'refreshOnStart', 'cacheEnabled'];
+              'indexUrl', 'errorPageUrl', 'passwordUrl', 'timeoutMs', 'userAgent',
+              'refreshIntervalSec', 'maxCacheSizeMb', 'retryCount', 'allowedHosts'];
+var BOOLS = ['settingsEnabled', 'requirePassword', 'showHeader', 'refreshOnStart', 'cacheEnabled',
+             'fullscreen', 'keepScreenOn', 'allowZoom', 'openLinksExternally',
+             'hideStatusLine', 'enableBridge'];
+var NUMBERS = ['timeoutMs', 'refreshIntervalSec', 'maxCacheSizeMb', 'retryCount'];
 
 function collect() {
     var o = {};
     FIELDS.forEach(function (k) {
-        var v = document.getElementById(k).value.trim();
-        if (v !== '') o[k] = (k === 'timeoutMs') ? parseInt(v, 10) : v;
+        var el = document.getElementById(k);
+        if (!el) return;
+        var v = el.value.trim();
+        if (v === '') return;
+        o[k] = (NUMBERS.indexOf(k) >= 0) ? parseInt(v, 10) : v;
     });
     BOOLS.forEach(function (k) { o[k] = document.getElementById(k).checked; });
     var iv = document.getElementById('iconVariant').value;

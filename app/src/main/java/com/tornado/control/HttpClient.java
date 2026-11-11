@@ -49,11 +49,36 @@ public final class HttpClient {
     }
 
     public static Resp get(String url, int timeoutMs) {
-        return get(url, timeoutMs, null);
+        return get(url, timeoutMs, null, 0);
     }
 
     /** GET-запрос с возможностью задать свой User-Agent. */
     public static Resp get(String url, int timeoutMs, String userAgent) {
+        return get(url, timeoutMs, userAgent, 0);
+    }
+
+    /**
+     * GET-запрос с повторами при сетевой ошибке.
+     *
+     * @param retries сколько раз повторить (0 — без повторов)
+     */
+    public static Resp get(String url, int timeoutMs, String userAgent, int retries) {
+        Resp r = getOnce(url, timeoutMs, userAgent);
+        int attempt = 0;
+        while (r.networkError && attempt < Math.max(0, retries)) {
+            attempt++;
+            try {
+                Thread.sleep(300L * attempt);
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+            r = getOnce(url, timeoutMs, userAgent);
+        }
+        return r;
+    }
+
+    private static Resp getOnce(String url, int timeoutMs, String userAgent) {
         Resp out = new Resp();
         long started = System.currentTimeMillis();
         HttpURLConnection conn = null;

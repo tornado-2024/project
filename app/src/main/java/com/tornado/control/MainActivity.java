@@ -20,6 +20,7 @@ import android.os.Looper;
 import android.text.InputType;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
 import android.webkit.ConsoleMessage;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -82,6 +83,8 @@ public class MainActivity extends Activity {
 
     private Prefs prefs;
     private CacheStore cache;
+    /** Добавлен ли JS-мост в WebView. */
+    private boolean bridgeInstalled = false;
 
     /** Действующие удалённые настройки. */
     private RemoteSettings settings = RemoteSettings.defaults();
@@ -95,6 +98,8 @@ public class MainActivity extends Activity {
     private volatile String pendingMainContentType;
 
     private boolean offlineMode = false;
+    /** Настройки с сервера получены (до этого шестерёнку не показываем). */
+    private volatile boolean remoteSettingsReady = false;
     /** Состояние сети на момент последней проверки — чтобы не дублировать загрузку. */
     private boolean wasOnline = true;
 
@@ -152,6 +157,71 @@ public class MainActivity extends Activity {
         refresh();
     }
 
+    /** Применяет «прочие» настройки: полный экран, экран, зум, ссылки, таймер, кэш, мост. */
+    private void applyExtraSettings(RemoteSettings s) {
+        try {
+            // полноэкранный режим
+            if (s.fullscreen) {
+                getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                        WindowManager.LayoutParams.FLAG_FULLSCREEN);
+            } else {
+                getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+            }
+            // не гасить экран
+            if (s.keepScreenOn) {
+                getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            } else {
+                getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            }
+            // нижняя строка статуса приложения
+            statusView.setVisibility(s.hideStatusLine ? View.GONE : View.VISIBLE);
+            // масштабирование страницы
+            web.getSettings().setSupportZoom(s.allowZoom);
+            web.getSettings().setBuiltInZoomControls(s.allowZoom);
+            web.getSettings().setDisplayZoomControls(false);
+            // JS-мост
+            if (s.enableBridge) {
+                if (!bridgeInstalled) {
+                    JsBridge bridge = new JsBridge(this);
+                    web.addJavascriptInterface(bridge, "Android");
+                    web.addJavascriptInterface(bridge, "Native");
+                    bridgeInstalled = true;
+                }
+            } else if (bridgeInstalled) {
+                web.removeJavascriptInterface("Android");
+                web.removeJavascriptInterface("Native");
+                bridgeInstalled = false;
+            }
+            // лимит кэша
+            if (s.maxCacheSizeMb > 0) {
+                cache.setMaxBytes(s.maxCacheSizeMb * 1024L * 1024L);
+            }
+            // автообновление
+            scheduleAutoRefresh(s.refreshIntervalSec);
+        } catch (Exception e) {
+            Log.w(TAG, "applyExtraSettings failed", e);
+        }
+    }
+
+    /** Таймер автообновления контента. */
+    private void scheduleAutoRefresh(final int seconds) {
+        ui.removeCallbacks(autoRefresh);
+        if (seconds <= 0) return;
+        ui.postDelayed(autoRefresh, seconds * 1000L);
+    }
+
+    private final Runnable autoRefresh = new Runnable() {
+        @Override
+        public void run() {
+            RemoteSettings s = settings;
+            int sec = s == null ? 0 : s.refreshIntervalSec;
+            if (sec > 0) {
+                refresh();
+                ui.postDelayed(this, sec * 1000L);
+            }
+        }
+    };
+
     /**
      * Переключает иконку приложения: запоминает выбор (он важнее удалённых настроек)
      * и мягко перезапускает активити — отключение компонента, на котором мы запущены,
@@ -180,6 +250,31 @@ public class MainActivity extends Activity {
                 finish();
             }, 200);
         });
+    }
+
+    /** Сохраняет переключатели поведения в локальный переопределитель настроек. */
+    private void saveLocalExtra(boolean fullscreen, boolean keepScreenOn, boolean allowZoom,
+                                boolean openLinksExternally, boolean enableBridge, int refreshSec) {
+        try {
+            RemoteSettings cur = RemoteSettings.fromJson(prefs.localSettingsJson());
+            cur.fullscreen = fullscreen;
+            cur.keepScreenOn = keepScreenOn;
+            cur.allowZoom = allowZoom;
+            cur.openLinksExternally = openLinksExternally;
+            cur.enableBridge = enableBridge;
+            cur.refreshIntervalSec = refreshSec;
+            prefs.setLocalSettingsJson(cur.toJson());
+        } catch (Exception e) {
+            Log.w(TAG, "saveLocalExtra failed", e);
+        }
+    }
+
+    private static int parseInt(String s) {
+        try {
+            return Integer.parseInt(s.trim());
+        } catch (Exception e) {
+            return 0;
+        }
     }
 
     /** Показывает стектрейс ошибки вместо падения приложения. */
@@ -224,9 +319,11 @@ public class MainActivity extends Activity {
         web.setOverScrollMode(View.OVER_SCROLL_NEVER);
         web.setBackgroundColor(0xFF0E1116);
 
+        // мост по умолчанию включён; настройка enableBridge может его убрать позже
         JsBridge bridge = new JsBridge(this);
         web.addJavascriptInterface(bridge, "Android");
         web.addJavascriptInterface(bridge, "Native");
+        bridgeInstalled = true;
 
         web.setWebViewClient(new AppWebViewClient());
         web.setWebChromeClient(new AppWebChromeClient());
@@ -302,10 +399,47 @@ public class MainActivity extends Activity {
             return true;
         }
         if (lower.startsWith("http://") || lower.startsWith("https://")) {
+            // белый список доменов: пусто — разрешены все
+            String hosts = settings == null ? "" : settings.allowedHosts;
+            if (hosts != null && !hosts.trim().isEmpty() && !hostAllowed(url, hosts)) {
+                openInBrowser(url);
+                return true;
+            }
+            // внешние ссылки — в системный браузер
+            if (settings != null && settings.openLinksExternally
+                    && !url.equals(pendingMainUrl) && !url.equals(prefs.lastIndexUrl())) {
+                openInBrowser(url);
+                return true;
+            }
             web.loadUrl(url);
             return true;
         }
         return false;
+    }
+
+    /** Разрешён ли домен по белому списку (через запятую). */
+    private boolean hostAllowed(String url, String list) {
+        try {
+            String host = Uri.parse(url).getHost();
+            if (host == null) return false;
+            for (String h : list.split(",")) {
+                String t = h.trim().toLowerCase();
+                if (t.isEmpty()) continue;
+                if (host.equalsIgnoreCase(t) || host.toLowerCase().endsWith("." + t)) return true;
+            }
+            return false;
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
+    private void openInBrowser(String url) {
+        try {
+            Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(i);
+        } catch (Exception ignored) {
+        }
     }
 
     private void actStart(Intent intent) {
@@ -414,7 +548,7 @@ public class MainActivity extends Activity {
 
             String indexUrl = s.indexUrl;
             if (indexUrl.isEmpty() && !control.isEmpty()) {
-                HttpClient.Resp ctrl = HttpClient.get(control, s.timeoutMs, s.userAgent);
+                HttpClient.Resp ctrl = HttpClient.get(control, s.timeoutMs, s.userAgent, s.retryCount);
                 if (ctrl.isOk()) {
                     if (s.cacheEnabled) {
                         cache.put(control, ctrl.status, HttpClient.mimeOf(ctrl.contentType),
@@ -428,7 +562,7 @@ public class MainActivity extends Activity {
             // 2. страница 404 — сохраняется для офлайна
             String errorUrl = resolveErrorUrl(s, indexUrl);
             if (!errorUrl.isEmpty()) {
-                HttpClient.Resp e = HttpClient.get(errorUrl, s.timeoutMs, s.userAgent);
+                HttpClient.Resp e = HttpClient.get(errorUrl, s.timeoutMs, s.userAgent, s.retryCount);
                 if (e.isOk() && s.cacheEnabled) {
                     cache.put(errorUrl, e.status, HttpClient.mimeOf(e.contentType),
                             HttpClient.charsetOf(e.contentType), e.body);
@@ -438,7 +572,7 @@ public class MainActivity extends Activity {
 
             // 3. хэш пароля для раздела настроек
             if (!s.passwordUrl.isEmpty()) {
-                HttpClient.Resp p = HttpClient.get(s.passwordUrl, s.timeoutMs, s.userAgent);
+                HttpClient.Resp p = HttpClient.get(s.passwordUrl, s.timeoutMs, s.userAgent, s.retryCount);
                 if (p.isOk() && s.cacheEnabled) {
                     cache.put(s.passwordUrl, p.status, HttpClient.mimeOf(p.contentType),
                             HttpClient.charsetOf(p.contentType), p.body);
@@ -448,7 +582,7 @@ public class MainActivity extends Activity {
             // 4. сама индексная страница
             HttpClient.Resp index = null;
             if (!indexUrl.isEmpty()) {
-                index = HttpClient.get(indexUrl, s.timeoutMs, s.userAgent);
+                index = HttpClient.get(indexUrl, s.timeoutMs, s.userAgent, s.retryCount);
             }
 
             final RemoteSettings fs = s;
@@ -511,6 +645,10 @@ public class MainActivity extends Activity {
         if (url.isEmpty()) url = s.settingsUrl;
         if (url != null && !url.isEmpty()) {
             HttpClient.Resp r = HttpClient.get(url, 10000, s.userAgent);
+            if (r.status >= 0) {
+                // сервер ответил — настройки инициализированы (даже если файла нет)
+                remoteSettingsReady = true;
+            }
             if (r.isOk()) {
                 RemoteSettings fresh = RemoteSettings.defaults();
                 fresh.applyJson(r.text());
@@ -587,7 +725,8 @@ public class MainActivity extends Activity {
 
         topBar.setVisibility(s.showHeader ? View.VISIBLE : View.GONE);
 
-        boolean visible = s.settingsEnabled || prefs.forceSettingsVisible();
+        // шестерёнка появляется только после инициализации настроек с сервера
+        boolean visible = remoteSettingsReady && (s.settingsEnabled || prefs.forceSettingsVisible());
         btnSettings.setVisibility(visible ? View.VISIBLE : View.GONE);
 
         String title = prefs.titleOverride();
@@ -609,6 +748,9 @@ public class MainActivity extends Activity {
             btnSettings.setColorFilter(accent);
         } catch (Exception ignored) {
         }
+
+        // --- новые настройки ---
+        applyExtraSettings(s);
 
         // иконка приложения: локальный выбор пользователя важнее удалённой настройки
         String localIcon = prefs.iconVariant();
@@ -770,6 +912,34 @@ public class MainActivity extends Activity {
         icons.addView(allBtn);
         box.addView(icons);
 
+        box.addView(label("Поведение приложения:"));
+        final RemoteSettings eff = settings;
+        CheckBox cFull = new CheckBox(this);
+        cFull.setText("Полноэкранный режим");
+        cFull.setChecked(eff.fullscreen);
+        box.addView(cFull);
+        CheckBox cKeep = new CheckBox(this);
+        cKeep.setText("Не гасить экран");
+        cKeep.setChecked(eff.keepScreenOn);
+        box.addView(cKeep);
+        CheckBox cZoom = new CheckBox(this);
+        cZoom.setText("Разрешить масштабирование");
+        cZoom.setChecked(eff.allowZoom);
+        box.addView(cZoom);
+        CheckBox cExt = new CheckBox(this);
+        cExt.setText("Внешние ссылки — в браузере");
+        cExt.setChecked(eff.openLinksExternally);
+        box.addView(cExt);
+        CheckBox cBridge = new CheckBox(this);
+        cBridge.setText("Разрешить JS-мост (window.Android)");
+        cBridge.setChecked(eff.enableBridge);
+        box.addView(cBridge);
+        final EditText cRefresh = new EditText(this);
+        cRefresh.setInputType(InputType.TYPE_CLASS_NUMBER);
+        cRefresh.setHint("Автообновление, секунд");
+        cRefresh.setText(String.valueOf(eff.refreshIntervalSec));
+        box.addView(cRefresh);
+
         Button clear = new Button(this);
         clear.setText("Очистить кэш");
         clear.setOnClickListener(v -> {
@@ -787,6 +957,8 @@ public class MainActivity extends Activity {
                     prefs.setSettingsUrlOverride(settingsInput.getText().toString());
                     prefs.setTitleOverride(titleInput.getText().toString());
                     prefs.setForceSettingsVisible(alwaysVisible.isChecked());
+                    saveLocalExtra(cFull.isChecked(), cKeep.isChecked(), cZoom.isChecked(),
+                            cExt.isChecked(), cBridge.isChecked(), parseInt(cRefresh.getText().toString()));
                     refresh();
                 })
                 .setNegativeButton("Отмена", null)

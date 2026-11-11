@@ -44,6 +44,8 @@ public final class CacheStore {
     }
 
     private final File dir;
+    /** Текущий лимит кэша (байт). */
+    private long maxBytes = MAX_TOTAL;
 
     public CacheStore(Context ctx) {
         dir = new File(ctx.getApplicationContext().getCacheDir(), "webcache");
@@ -73,6 +75,17 @@ public final class CacheStore {
 
     private File metaFile(String url) {
         return new File(dir, hash(url) + ".meta");
+    }
+
+    /** Изменить лимит кэша (настройка maxCacheSizeMb). */
+    public synchronized void setMaxBytes(long bytes) {
+        if (bytes <= 0) bytes = MAX_TOTAL;
+        this.maxBytes = bytes;
+        trim();
+    }
+
+    public synchronized long getMaxBytes() {
+        return maxBytes;
     }
 
     public synchronized void put(String url, int status, String mime, String charset, byte[] body) {
@@ -153,7 +166,7 @@ public final class CacheStore {
     private void trim() {
         try {
             long total = sizeBytes();
-            if (total <= MAX_TOTAL) return;
+            if (total <= maxBytes) return;
             List<File> metas = new ArrayList<>();
             File[] files = dir.listFiles();
             if (files == null) return;
@@ -162,7 +175,7 @@ public final class CacheStore {
             }
             metas.sort((a, b) -> Long.compare(a.lastModified(), b.lastModified()));
             for (File m : metas) {
-                if (total <= MAX_TOTAL) break;
+                if (total <= maxBytes) break;
                 Properties props = readProps(m);
                 String url = props.getProperty("url");
                 if (url != null) {

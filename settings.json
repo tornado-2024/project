@@ -15,5 +15,15 @@
   "statusBarColor": "#171B24",
   "accentColor": "#4C8DFF",
   "userAgent": "",
-  "iconVariant": ""
+  "iconVariant": "",
+  "fullscreen": false,
+  "keepScreenOn": false,
+  "allowZoom": false,
+  "openLinksExternally": false,
+  "refreshIntervalSec": 0,
+  "maxCacheSizeMb": 0,
+  "retryCount": 0,
+  "hideStatusLine": false,
+  "enableBridge": true,
+  "allowedHosts": ""
 }

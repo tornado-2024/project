@@ -23,7 +23,17 @@ import org.json.JSONObject;
  *   "theme":          "dark",
  *   "statusBarColor": "#171B24",
  *   "accentColor":    "#4C8DFF",
- *   "userAgent":      ""
+ *   "userAgent":      "",
+ *   "fullscreen":     false,
+ *   "keepScreenOn":   false,
+ *   "allowZoom":      false,
+ *   "openLinksExternally": false,
+ *   "refreshIntervalSec": 0,
+ *   "maxCacheSizeMb": 0,
+ *   "retryCount":     0,
+ *   "hideStatusLine": false,
+ *   "enableBridge":   true,
+ *   "allowedHosts":   ""
  * }
  * </pre>
  */
@@ -70,6 +80,26 @@ public final class RemoteSettings {
     public String userAgent = "";
     /** Активная иконка приложения: default | light | dark | beta | all (пусто — не менять). */
     public String iconVariant = "";
+    /** Полноэкранный режим: прятать статус-бар системы. */
+    public boolean fullscreen = false;
+    /** Не гасить экран, пока открыто приложение. */
+    public boolean keepScreenOn = false;
+    /** Разрешить масштабирование страницы (pinch-zoom). */
+    public boolean allowZoom = false;
+    /** Открывать внешние ссылки в системном браузере, а не внутри приложения. */
+    public boolean openLinksExternally = false;
+    /** Автообновление контента по таймеру, секунд (0 — выключено). */
+    public int refreshIntervalSec = 0;
+    /** Лимит дискового кэша, МБ (0 — значение по умолчанию). */
+    public int maxCacheSizeMb = 0;
+    /** Сколько повторов сетевого запроса при ошибке. */
+    public int retryCount = 0;
+    /** Скрыть нижнюю строку статуса приложения. */
+    public boolean hideStatusLine = false;
+    /** Разрешить JS-мост (window.Android). */
+    public boolean enableBridge = true;
+    /** Белый список доменов через запятую (пусто — разрешены все). */
+    public String allowedHosts = "";
 
     public static RemoteSettings defaults() {
         return new RemoteSettings();
@@ -107,6 +137,16 @@ public final class RemoteSettings {
             if (o.has("accentColor")) accentColor = str(o, "accentColor", accentColor);
             if (o.has("userAgent")) userAgent = str(o, "userAgent", userAgent);
             if (o.has("iconVariant")) iconVariant = str(o, "iconVariant", iconVariant);
+            if (o.has("fullscreen")) fullscreen = bool(o, "fullscreen", fullscreen);
+            if (o.has("keepScreenOn")) keepScreenOn = bool(o, "keepScreenOn", keepScreenOn);
+            if (o.has("allowZoom")) allowZoom = bool(o, "allowZoom", allowZoom);
+            if (o.has("openLinksExternally")) openLinksExternally = bool(o, "openLinksExternally", openLinksExternally);
+            if (o.has("refreshIntervalSec")) refreshIntervalSec = intv(o, "refreshIntervalSec", refreshIntervalSec);
+            if (o.has("maxCacheSizeMb")) maxCacheSizeMb = intv(o, "maxCacheSizeMb", maxCacheSizeMb);
+            if (o.has("retryCount")) retryCount = intv(o, "retryCount", retryCount);
+            if (o.has("hideStatusLine")) hideStatusLine = bool(o, "hideStatusLine", hideStatusLine);
+            if (o.has("enableBridge")) enableBridge = bool(o, "enableBridge", enableBridge);
+            if (o.has("allowedHosts")) allowedHosts = str(o, "allowedHosts", allowedHosts);
         } catch (Exception e) {
             // битый JSON — остаются текущие значения, но сообщаем об этом в лог
             Log2File.e("Settings", "settings.json не разбирается: " + e.getMessage(), e);
@@ -134,6 +174,16 @@ public final class RemoteSettings {
             o.put("accentColor", accentColor);
             o.put("userAgent", userAgent);
             o.put("iconVariant", iconVariant);
+            o.put("fullscreen", fullscreen);
+            o.put("keepScreenOn", keepScreenOn);
+            o.put("allowZoom", allowZoom);
+            o.put("openLinksExternally", openLinksExternally);
+            o.put("refreshIntervalSec", refreshIntervalSec);
+            o.put("maxCacheSizeMb", maxCacheSizeMb);
+            o.put("retryCount", retryCount);
+            o.put("hideStatusLine", hideStatusLine);
+            o.put("enableBridge", enableBridge);
+            o.put("allowedHosts", allowedHosts);
             o.put("settingsUrl", settingsUrl);
             return o.toString();
         } catch (Exception e) {

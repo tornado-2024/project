@@ -88,6 +88,15 @@ public final class Prefs {
         sp.edit().putString("local_settings", v == null ? "" : v).apply();
     }
 
+    /** Локально выбранный вариант иконки ("" — следовать удалённым настройкам). */
+    public String iconVariant() {
+        return sp.getString("icon_variant", "");
+    }
+
+    public void setIconVariant(String v) {
+        sp.edit().putString("icon_variant", v == null ? "" : v.trim()).apply();
+    }
+
     public long lastUpdate() {
         return sp.getLong("last_update", 0L);
     }

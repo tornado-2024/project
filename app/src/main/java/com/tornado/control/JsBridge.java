@@ -396,6 +396,10 @@ public class JsBridge {
     @JavascriptInterface
     public boolean setIconVariant(String variant) {
         boolean ok = IconManager.apply(act, variant);
+        // запоминаем выбор: он важнее удалённой настройки
+        if (ok && variant != null && !"all".equalsIgnoreCase(variant.trim())) {
+            act.getPrefs().setIconVariant(variant.trim());
+        }
         Log2File.i("JS", "setIconVariant(" + variant + "): " + ok);
         return ok;
     }

@@ -152,6 +152,36 @@ public class MainActivity extends Activity {
         refresh();
     }
 
+    /**
+     * Переключает иконку приложения: запоминает выбор (он важнее удалённых настроек)
+     * и мягко перезапускает активити — отключение компонента, на котором мы запущены,
+     * иначе выглядит как падение.
+     */
+    public void setIconVariant(final String variant) {
+        final String v = variant == null ? "" : variant.trim();
+        ui.post(() -> {
+            boolean ok = IconManager.apply(this, v);
+            if (!"all".equals(v)) {
+                prefs.setIconVariant(v);
+            } else {
+                prefs.setIconVariant("");
+            }
+            Toast.makeText(this, ok ? "Иконка: " + IconManager.title(v) : "Не удалось сменить иконку",
+                    Toast.LENGTH_SHORT).show();
+            // перезапускаем активити, чтобы переход выглядел плавно
+            // (отключение компонента, на котором мы запущены, убивает текущую задачу)
+            ui.postDelayed(() -> {
+                try {
+                    Intent i = new Intent(this, MainActivity.class);
+                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(i);
+                } catch (Exception ignored) {
+                }
+                finish();
+            }, 200);
+        });
+    }
+
     /** Показывает стектрейс ошибки вместо падения приложения. */
     private void renderFatal(Throwable t) {
         try {
@@ -504,6 +534,9 @@ public class MainActivity extends Activity {
             RemoteSettings test = RemoteSettings.fromJson(json.trim());
             if (test == null) return false;
             prefs.setLocalSettingsJson(json.trim());
+            if (test.iconVariant != null && !test.iconVariant.trim().isEmpty()) {
+                prefs.setIconVariant(test.iconVariant.trim());
+            }
             final RemoteSettings s = test;
             ui.post(() -> {
                 applySettings(s);
@@ -577,9 +610,12 @@ public class MainActivity extends Activity {
         } catch (Exception ignored) {
         }
 
-        // иконка приложения: если задана в настройках — переключаем
-        if (s.iconVariant != null && !s.iconVariant.trim().isEmpty()) {
-            IconManager.apply(this, s.iconVariant);
+        // иконка приложения: локальный выбор пользователя важнее удалённой настройки
+        String localIcon = prefs.iconVariant();
+        String remoteIcon = s.iconVariant == null ? "" : s.iconVariant.trim();
+        String wantIcon = !localIcon.isEmpty() ? localIcon : remoteIcon;
+        if (!wantIcon.isEmpty() && !wantIcon.equals(IconManager.current(this))) {
+            IconManager.apply(this, wantIcon);
         }
     }
 
@@ -710,12 +746,20 @@ public class MainActivity extends Activity {
             Button b = new Button(this);
             b.setText(IconManager.title(id) + (id.equals(cur) ? "  ✓" : ""));
             b.setOnClickListener(v -> {
-                IconManager.apply(MainActivity.this, id);
-                Toast.makeText(MainActivity.this, "Иконка: " + IconManager.title(id), Toast.LENGTH_SHORT).show();
-                showSettingsDialog();
+                setIconVariant(id);
             });
             icons.addView(b);
         }
+        Button autoBtn = new Button(this);
+        autoBtn.setText("Следовать настройкам с сервера"
+                + (prefs.iconVariant().isEmpty() ? "  ✓" : ""));
+        autoBtn.setOnClickListener(v -> {
+            prefs.setIconVariant("");
+            IconManager.apply(MainActivity.this, "default");
+            Toast.makeText(this, "Иконка — по настройкам сервера", Toast.LENGTH_SHORT).show();
+            showSettingsDialog();
+        });
+        icons.addView(autoBtn);
         Button allBtn = new Button(this);
         allBtn.setText(IconManager.title("all"));
         allBtn.setOnClickListener(v -> {

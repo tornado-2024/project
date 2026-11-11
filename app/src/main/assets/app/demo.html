@@ -3,97 +3,441 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>Tornado Bridge — демо</title>
+    <title>Tornado</title>
     <style>
-        :root { color-scheme: dark; }
-        * { box-sizing: border-box; }
+        :root {
+            --bg: #0E1116;
+            --panel: #171B24;
+            --line: #262D3A;
+            --text: #E6EAF2;
+            --muted: #8A94A6;
+            --accent: #4C8DFF;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body {
-            margin: 0; padding: 16px;
-            background: #0E1116; color: #E6EAF2;
+            margin: 0; background: var(--bg); color: var(--text);
             font-family: -apple-system, Roboto, "Segoe UI", system-ui, sans-serif;
-            font-size: 15px;
+            font-size: 15px; padding-bottom: 24px;
         }
-        h1 { font-size: 18px; margin: 0 0 4px; }
-        p.sub { color: #8A94A6; font-size: 13px; margin: 0 0 16px; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        button {
-            background: #171B24; color: #E6EAF2; border: 1px solid #262D3A;
-            padding: 14px 10px; border-radius: 12px; font-size: 14px; cursor: pointer;
+        .wrap { max-width: 720px; margin: 0 auto; padding: 16px; }
+
+        .hero {
+            background: linear-gradient(135deg, #1B2434, #171B24 60%);
+            border: 1px solid var(--line); border-radius: 16px;
+            padding: 18px; margin-bottom: 14px;
         }
-        button:active { background: #1F2632; }
-        button.primary { background: #4C8DFF; border-color: #4C8DFF; color: #fff; }
-        pre {
-            background: #12161E; border: 1px solid #232B38; border-radius: 12px;
-            padding: 12px; font-size: 12px; overflow: auto; max-height: 320px;
-            color: #A8B3C4; margin: 14px 0 0; white-space: pre-wrap; word-break: break-word;
+        .hero h1 { margin: 0 0 4px; font-size: 22px; }
+        .hero p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+        .badges { margin-top: 12px; display: flex; gap: 6px; flex-wrap: wrap; }
+        .badge {
+            font-size: 11px; padding: 3px 9px; border-radius: 20px;
+            background: rgba(76,141,255,.14); color: var(--accent); font-weight: 600;
         }
-        .tag { display:inline-block; padding:2px 8px; border-radius: 6px; background:#1D2430; font-size:11px; color:#4C8DFF; }
+        .badge.off { background: rgba(255,183,77,.14); color: #FFB74D; }
+        .badge.on { background: rgba(46,160,67,.16); color: #5BD07A; }
+
+        .tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+        .tabs button {
+            flex: 1; background: var(--panel); color: var(--muted);
+            border: 1px solid var(--line); border-radius: 10px;
+            padding: 10px 4px; font-size: 13px; cursor: pointer;
+        }
+        .tabs button.active { color: #fff; background: var(--accent); border-color: var(--accent); }
+
+        .card {
+            background: var(--panel); border: 1px solid var(--line);
+            border-radius: 14px; padding: 14px; margin-bottom: 12px;
+        }
+        .card h2 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase;
+                   letter-spacing: .05em; color: var(--muted); }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+        button.act {
+            background: #1D2430; color: var(--text); border: 1px solid var(--line);
+            border-radius: 10px; padding: 12px 10px; font-size: 14px; cursor: pointer;
+        }
+        button.act:active { background: #262E3C; transform: scale(.98); }
+        button.act.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+
+        .row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .row label { flex: 1; font-size: 14px; }
+        .row .val { color: var(--muted); font-size: 13px; min-width: 46px; text-align: right; }
+        input[type=range] { flex: 2; accent-color: var(--accent); }
+        input[type=text], textarea, select {
+            width: 100%; background: #10141B; color: var(--text);
+            border: 1px solid var(--line); border-radius: 9px; padding: 10px;
+            font-size: 14px; font-family: inherit;
+        }
+        textarea { resize: vertical; min-height: 84px; }
+
+        .todo { display: flex; gap: 8px; margin-bottom: 8px; }
+        .todo input { flex: 1; }
+        ul.list { list-style: none; padding: 0; margin: 0; }
+        ul.list li {
+            display: flex; align-items: center; gap: 10px; padding: 9px 0;
+            border-bottom: 1px solid #1C2230; font-size: 14px;
+        }
+        ul.list li:last-child { border-bottom: 0; }
+        ul.list li span { flex: 1; }
+        ul.list li.done span { text-decoration: line-through; color: var(--muted); }
+        ul.list button {
+            background: none; border: 0; color: var(--muted); font-size: 17px;
+            cursor: pointer; padding: 0 4px;
+        }
+
+        .clock { font-size: 42px; font-weight: 800; text-align: center; letter-spacing: -.02em; }
+        .clock small { display: block; font-size: 12px; font-weight: 400; color: var(--muted); letter-spacing: 0; }
+        .log {
+            font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11.5px;
+            color: #93A0B3; max-height: 190px; overflow: auto; line-height: 1.55;
+        }
+        .log div { border-bottom: 1px solid #1A1F29; padding: 2px 0; }
+        .log b { color: var(--accent); font-weight: 600; }
+        .toast {
+            position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(140%);
+            background: #222A38; color: #fff; padding: 12px 18px; border-radius: 12px;
+            font-size: 14px; box-shadow: 0 8px 26px rgba(0,0,0,.5); transition: transform .22s;
+            max-width: 88%; text-align: center; z-index: 50;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+        .hint { color: var(--muted); font-size: 12px; margin: 8px 0 0; line-height: 1.5; }
+        a { color: var(--accent); }
     </style>
 </head>
 <body>
-    <h1>JS → Android Bridge <span class="tag" id="mode">проверка…</span></h1>
-    <p class="sub">Страница работает офлайн из assets. Все кнопки вызывают нативные методы Android.</p>
+<div class="wrap">
 
-    <div class="grid">
-        <button class="primary" onclick="v(50)">Вибрация 50 мс</button>
-        <button onclick="v(300)">Вибрация 300 мс</button>
-        <button onclick="pattern()">Паттерн [0,40,80,40]</button>
-        <button onclick="effect('heavy')">Эффект heavy</button>
-        <button onclick="effect('notification')">Эффект notification</button>
-        <button onclick="toast()">Toast</button>
-        <button onclick="copyIt()">Копировать текст</button>
-        <button onclick="notif()">Уведомление</button>
-        <button onclick="title()">Сменить заголовок</button>
-        <button onclick="share()">Поделиться</button>
-        <button onclick="info()">Инфо об устройстве</button>
-        <button onclick="bar()">Цвет статус-бара</button>
-        <button onclick="reload()">Перезагрузить</button>
+    <div class="hero">
+        <h1 id="hello">Tornado</h1>
+        <p>Страница работает как обычный сайт и как приложение: во втором случае
+           доступен мост <code>window.Android</code> (вибрация, тосты, настройки).</p>
+        <div class="badges" id="badges"></div>
     </div>
 
-    <pre id="out">Нажмите кнопку…</pre>
+    <div class="tabs">
+        <button class="active" data-tab="home" onclick="tab('home', this)">Главная</button>
+        <button data-tab="tools" onclick="tab('tools', this)">Инструменты</button>
+        <button data-tab="list" onclick="tab('list', this)">Список</button>
+        <button data-tab="log" onclick="tab('log', this)">Лог</button>
+    </div>
 
-    <script>
-        // Адаптер: использует обёртку Tornado (assets/app/bridge.js), если она загрузилась,
-        // иначе — напрямую нативный интерфейс window.Android / window.Native.
-        var native = window.Android || window.Native || null;
-        var B = window.Tornado || null;
+    <!-- ============================================ ГЛАВНАЯ -->
+    <div id="tab-home">
+        <div class="card">
+            <h2>Время</h2>
+            <div class="clock" id="clock">--:--<small>загрузка…</small></div>
+        </div>
 
-        var out = document.getElementById('out');
-        function log(msg) {
-            out.textContent = (typeof msg === 'string' ? msg : JSON.stringify(msg, null, 2));
+        <div class="card">
+            <h2>Быстрые действия</h2>
+            <div class="grid">
+                <button class="act primary" onclick="buzz(40)">Вибрация 40 мс</button>
+                <button class="act" onclick="buzz(200)">Вибрация 200 мс</button>
+                <button class="act" onclick="buzzPattern()">Паттерн</button>
+                <button class="act" onclick="toast('Привет из страницы!')">Toast</button>
+                <button class="act" onclick="copyMe()">Копировать</button>
+                <button class="act" onclick="shareMe()">Поделиться</button>
+                <button class="act" onclick="openSettings()">Настройки</button>
+                <button class="act" onclick="openTest()">Тест моста</button>
+            </div>
+            <p class="hint">Кнопка «Настройки» откроет раздел настроек приложения
+               (если он включён и не защищён паролем).</p>
+        </div>
+
+        <div class="card">
+            <h2>Свет</h2>
+            <div class="row">
+                <label>Яркость статуса</label>
+                <input type="range" id="bright" min="0" max="100" value="70" oninput="brightness(this.value)">
+                <span class="val" id="brightVal">70%</span>
+            </div>
+            <div class="grid" style="margin-top:10px">
+                <button class="act" onclick="setBar('#4C8DFF')">Синий</button>
+                <button class="act" onclick="setBar('#1B6E3C')">Зелёный</button>
+                <button class="act" onclick="setBar('#6E3C1B')">Оранжевый</button>
+                <button class="act" onclick="setBar('#171B24')">Тёмный</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================ ИНСТРУМЕНТЫ -->
+    <div id="tab-tools" style="display:none">
+        <div class="card">
+            <h2>Конвертер</h2>
+            <textarea id="convIn" placeholder="текст для преобразования"></textarea>
+            <div class="grid" style="margin-top:8px">
+                <button class="act" onclick="conv('upper')">В ВЕРХНИЙ</button>
+                <button class="act" onclick="conv('lower')">в нижний</button>
+                <button class="act" onclick="conv('rev')">Реверс</button>
+                <button class="act" onclick="conv('len')">Длина</button>
+                <button class="act" onclick="conv('b64')">Base64</button>
+                <button class="act" onclick="conv('hash')">SHA-256</button>
+            </div>
+            <p class="hint" id="convOut">Результат появится здесь.</p>
+        </div>
+
+        <div class="card">
+            <h2>О приложении</h2>
+            <pre id="devInfo" style="font-size:12px;color:#93A0B3;white-space:pre-wrap;margin:0">загрузка…</pre>
+        </div>
+
+        <div class="card">
+            <h2>Настройки приложения</h2>
+            <div class="grid">
+                <button class="act" onclick="applyTitle()">Задать свой заголовок</button>
+                <button class="act" onclick="resetCfg()">Сбросить настройки</button>
+            </div>
+            <p class="hint" id="cfgOut">Заголовок верхней панели и другие параметры
+               задаются на странице <a href="settings.html">настроек</a>.</p>
+        </div>
+    </div>
+
+    <!-- ============================================ СПИСОК -->
+    <div id="tab-list" style="display:none">
+        <div class="card">
+            <h2>Задачи</h2>
+            <div class="todo">
+                <input type="text" id="todoIn" placeholder="Что сделать?" onkeydown="if(event.key==='Enter')addTodo()">
+                <button class="act" onclick="addTodo()" style="flex:0 0 auto">+</button>
+            </div>
+            <ul class="list" id="todoList"></ul>
+            <p class="hint">Список хранится локально (localStorage) и переживает перезапуск.</p>
+        </div>
+    </div>
+
+    <!-- ============================================ ЛОГ -->
+    <div id="tab-log" style="display:none">
+        <div class="card">
+            <h2>Журнал событий</h2>
+            <div class="log" id="logBox"><div><b>старт</b> страница загружена</div></div>
+            <div class="grid" style="margin-top:10px">
+                <button class="act" onclick="document.getElementById('logBox').innerHTML=''">Очистить</button>
+                <button class="act" onclick="log('тестовая запись')">Добавить запись</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ------------------------------------------------------------------ утилиты */
+var A = window.Android || window.Native || null;
+var isNative = !!(A && typeof A.vibrate === 'function');
+var logLines = [];
+
+function log(msg) {
+    var t = new Date().toLocaleTimeString();
+    logLines.unshift('<div><b>' + t + '</b> ' + esc(msg) + '</div>');
+    if (logLines.length > 80) logLines.pop();
+    var box = document.getElementById('logBox');
+    if (box) box.innerHTML = logLines.join('');
+    if (isNative && A && typeof A.log === 'function') { try { A.log(msg); } catch (e) {} }
+    console.log('[tornado]', msg);
+}
+function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function toast(text) {
+    if (isNative && typeof A.toast === 'function') { A.toast(text); log('toast: ' + text); return; }
+    var el = document.getElementById('toast');
+    el.textContent = text;
+    el.classList.add('show');
+    setTimeout(function () { el.classList.remove('show'); }, 1800);
+    log('toast (web): ' + text);
+}
+
+/* -------------------------------------------------------------------- вибрация */
+function buzz(ms) {
+    if (isNative) { A.vibrate(ms); log('vibrate(' + ms + ')'); }
+    else if (navigator.vibrate) { navigator.vibrate(ms); log('vibrate(' + ms + ') web'); }
+    else { toast('Вибрация недоступна'); }
+}
+function buzzPattern() {
+    var p = [0, 45, 90, 45, 120];
+    if (isNative) { A.vibratePattern(JSON.stringify(p)); log('vibratePattern ' + p); }
+    else if (navigator.vibrate) { navigator.vibrate(p); log('vibratePattern web'); }
+}
+
+/* -------------------------------------------------------------------- действия */
+function copyMe() {
+    var text = 'Tornado — скопировано ' + new Date().toLocaleString();
+    if (isNative && typeof A.copy === 'function') {
+        A.copy(text);
+        toast('Скопировано');
+    } else if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(function () { toast('Скопировано'); });
+    } else { toast('Буфер недоступен'); }
+}
+function shareMe() {
+    if (isNative && typeof A.share === 'function') A.share('Tornado Control', 'Tornado');
+    else if (navigator.share) navigator.share({ title: 'Tornado', text: 'Tornado Control' });
+    else toast('Поделиться недоступно');
+}
+function openSettings() {
+    if (isNative && typeof A.showSettings === 'function') { A.showSettings(); log('showSettings'); }
+    else location.href = 'settings.html';
+}
+function openTest() { location.href = 'selftest.html'; }
+function setBar(color) {
+    if (isNative && typeof A.setStatusBarColor === 'function') { A.setStatusBarColor(color); log('setStatusBarColor ' + color); }
+    else document.body.style.background = color;
+}
+function brightness(v) {
+    document.getElementById('brightVal').textContent = v + '%';
+    if (isNative && typeof A.setStatusBarColor === 'function') {
+        var g = Math.round(255 * v / 100);
+        A.setStatusBarColor('rgb(' + g + ',' + Math.round(g * .6) + ',' + g + ')');
+    }
+}
+
+/* -------------------------------------------------------------------- конвертер */
+function conv(mode) {
+    var v = document.getElementById('convIn').value;
+    var out = '';
+    if (mode === 'upper') out = v.toUpperCase();
+    else if (mode === 'lower') out = v.toLowerCase();
+    else if (mode === 'rev') out = v.split('').reverse().join('');
+    else if (mode === 'len') out = 'символов: ' + v.length;
+    else if (mode === 'b64') {
+        try { out = btoa(unescape(encodeURIComponent(v))); }
+        catch (e) { out = 'ошибка: ' + e; }
+    } else if (mode === 'hash') {
+        if (window.crypto && crypto.subtle) {
+            crypto.subtle.digest('SHA-256', new TextEncoder().encode(v)).then(function (buf) {
+                var h = ''; new Uint8Array(buf).forEach(function (b) { h += ('0' + b.toString(16)).slice(-2); });
+                document.getElementById('convOut').textContent = 'SHA-256: ' + h;
+            });
+            return;
         }
-        function hasNative() { return !!(native && typeof native.vibrate === 'function'); }
+        out = 'SHA-256 недоступен в этом браузере';
+    }
+    document.getElementById('convOut').textContent = out || '(пусто)';
+    log('conv ' + mode);
+}
 
-        function call(fn, args) {
-            try {
-                if (B && typeof B[fn] === 'function') { return B[fn].apply(B, args); }
-                if (native && typeof native[fn] === 'function') { return native[fn].apply(native, args); }
-            } catch (e) {
-                log('Ошибка вызова ' + fn + ': ' + e);
-            }
-            return null;
+/* ------------------------------------------------------------------------ табы */
+function tab(name, btn) {
+    ['home', 'tools', 'list', 'log'].forEach(function (t) {
+        document.getElementById('tab-' + t).style.display = (t === name) ? '' : 'none';
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.tabs button'), function (b) {
+        b.classList.remove('active');
+    });
+    btn.classList.add('active');
+    log('вкладка: ' + name);
+}
+
+/* ------------------------------------------------------------------------ todo */
+var TODOS = 'tornado.todos';
+function loadTodos() {
+    try { return JSON.parse(localStorage.getItem(TODOS) || '[]'); } catch (e) { return []; }
+}
+function saveTodos(list) {
+    try { localStorage.setItem(TODOS, JSON.stringify(list)); } catch (e) {}
+}
+function renderTodos() {
+    var list = loadTodos();
+    var ul = document.getElementById('todoList');
+    ul.innerHTML = '';
+    list.forEach(function (t, i) {
+        var li = document.createElement('li');
+        if (t.done) li.className = 'done';
+        li.innerHTML = '<span>' + esc(t.text) + '</span>' +
+            '<button onclick="toggleTodo(' + i + ')">' + (t.done ? '↺' : '✓') + '</button>' +
+            '<button onclick="delTodo(' + i + ')">✕</button>';
+        ul.appendChild(li);
+    });
+}
+function addTodo() {
+    var inp = document.getElementById('todoIn');
+    var v = inp.value.trim();
+    if (!v) return;
+    var list = loadTodos();
+    list.push({ text: v, done: false });
+    saveTodos(list);
+    inp.value = '';
+    renderTodos();
+    log('добавлено: ' + v);
+    if (isNative) buzz(25);
+}
+function toggleTodo(i) {
+    var list = loadTodos();
+    if (list[i]) { list[i].done = !list[i].done; saveTodos(list); renderTodos(); buzz(25); }
+}
+function delTodo(i) {
+    var list = loadTodos();
+    list.splice(i, 1);
+    saveTodos(list);
+    renderTodos();
+}
+
+/* ------------------------------------------------------------------ настройки */
+function applyTitle() {
+    var t = prompt('Текст верхней панели:', 'Мой Tornado');
+    if (!t) return;
+    if (isNative && typeof A.applySettings === 'function') {
+        A.applySettings(JSON.stringify({ title: t }));
+        toast('Заголовок применён');
+    } else {
+        document.getElementById('hello').textContent = t;
+    }
+    log('applySettings title=' + t);
+}
+function resetCfg() {
+    if (isNative && typeof A.resetSettings === 'function') { A.resetSettings(); toast('Сброшено'); }
+    log('resetSettings');
+}
+
+/* ------------------------------------------------------------------------ часы */
+function tick() {
+    var d = new Date();
+    var hh = ('0' + d.getHours()).slice(-2);
+    var mm = ('0' + d.getMinutes()).slice(-2);
+    var ss = ('0' + d.getSeconds()).slice(-2);
+    var el = document.getElementById('clock');
+    if (el) el.innerHTML = hh + ':' + mm + '<small>' + ss + ' · ' +
+        d.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }) + '</small>';
+}
+setInterval(tick, 1000);
+tick();
+
+/* ------------------------------------------------------------------- старт */
+(function init() {
+    var b = document.getElementById('badges');
+    b.innerHTML = '<span class="badge ' + (isNative ? 'on' : 'off') + '">' +
+        (isNative ? 'родное приложение' : 'обычный браузер') + '</span>';
+    if (isNative) {
+        b.innerHTML += '<span class="badge on">мост доступен</span>';
+        try {
+            var d = JSON.parse(A.getDeviceInfo());
+            b.innerHTML += '<span class="badge">' + esc(d.model) + ' · Android ' + esc(d.androidVersion) + '</span>';
+            b.innerHTML += '<span class="badge ' + (d.online ? 'on' : 'off') + '">' +
+                (d.online ? 'онлайн' : 'офлайн') + '</span>';
+            document.getElementById('devInfo').textContent = JSON.stringify(d, null, 2);
+        } catch (e) {
+            document.getElementById('devInfo').textContent = 'getDeviceInfo(): ' + e;
         }
-
-        document.getElementById('mode').textContent = hasNative() ? 'native bridge' : 'web fallback';
-        document.getElementById('mode').style.color = hasNative() ? '#4C8DFF' : '#FFB74D';
-
-        function v(ms) { call('vibrate', [ms]); log('vibrate(' + ms + ')'); }
-        function pattern() { call('vibratePattern', [[0, 40, 80, 40]]); log('vibratePattern([0,40,80,40])'); }
-        function effect(t) { call('vibrateEffect', [t]); log('vibrateEffect("' + t + '")'); }
-        function toast() { call('toast', ['Привет из JavaScript']); log('toast()'); }
-        function copyIt() { call('copy', ['Tornado Control — скопировано из JS']); log('copy()'); }
-        function notif() { call('notify', ['Tornado Control', 'Тестовое уведомление из JS']); log('notify()'); }
-        function title() { call('setTitle', ['Мой заголовок']); log('setTitle()'); }
-        function share() { call('share', ['Проверка моста Android', 'Tornado Control']); log('share()'); }
-        function reload() { call('reload', []); log('reload()'); }
-        function bar() { call('setStatusBarColor', ['#1B6E3C']); log('setStatusBarColor(#1B6E3C)'); }
-        function info() {
-            var data = call('deviceInfo', []);
-            if (!data && native && typeof native.getDeviceInfo === 'function') {
-                try { data = JSON.parse(native.getDeviceInfo()); } catch (e) { data = null; }
-            }
-            log(data || 'нет данных');
-        }
-    </script>
+        try {
+            var s = JSON.parse(A.getSettings());
+            if (s.title) document.getElementById('hello').textContent = s.title;
+            document.getElementById('cfgOut').innerHTML =
+                'Текущий control: <code>' + esc(s.controlUrl) + '</code><br>' +
+                'Заголовок: <code>' + esc(s.title || '—') + '</code><br>' +
+                'Раздел настроек: ' + (s.settingsEnabled ? 'включён' : 'скрыт') +
+                (s.requirePassword ? ', защищён паролем' : ', без пароля');
+        } catch (e) {}
+        log('старт в приложении');
+    } else {
+        document.getElementById('devInfo').textContent =
+            'Страница открыта в браузере — моста window.Android нет.\n' +
+            'Откройте её внутри приложения Tornado, чтобы получить вибрацию, ' +
+            'тосты и настройки.';
+        log('старт в браузере');
+    }
+    renderTodos();
+})();
+</script>
 </body>
 </html>

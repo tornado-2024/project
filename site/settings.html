@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Tornado — настройки</title>
+    <style>
+        :root { --bg:#0E1116; --panel:#171B24; --line:#262D3A; --text:#E6EAF2; --muted:#8A94A6; --accent:#4C8DFF; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { margin:0; background:var(--bg); color:var(--text);
+               font-family:-apple-system, Roboto, "Segoe UI", system-ui, sans-serif; font-size:15px; }
+        .wrap { max-width:760px; margin:0 auto; padding:16px; padding-bottom:40px; }
+        h1 { font-size:20px; margin:0 0 4px; }
+        .sub { color:var(--muted); font-size:13px; margin:0 0 16px; line-height:1.5; }
+        .card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:12px; }
+        .card h2 { margin:0 0 12px; font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+        label.f { display:block; font-size:13px; color:var(--muted); margin:10px 0 4px; }
+        input[type=text], input[type=number], input[type=password], select, textarea {
+            width:100%; background:#10141B; color:var(--text); border:1px solid var(--line);
+            border-radius:9px; padding:10px; font-size:14px; font-family:inherit;
+        }
+        textarea { resize:vertical; min-height:150px; font-family:ui-monospace, Menlo, Consolas, monospace; font-size:12px; }
+        .switch { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid #1C2230; }
+        .switch:last-child { border-bottom:0; }
+        .switch label { flex:1; font-size:14px; }
+        .switch .hint { display:block; color:var(--muted); font-size:11.5px; margin-top:2px; }
+        .switch input { width:20px; height:20px; accent-color:var(--accent); }
+        .grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+        button {
+            background:#1D2430; color:var(--text); border:1px solid var(--line); border-radius:10px;
+            padding:12px 10px; font-size:14px; cursor:pointer;
+        }
+        button:active { background:#262E3C; }
+        button.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+        .row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+        .badge { display:inline-block; font-size:11px; padding:3px 9px; border-radius:20px;
+                 background:rgba(76,141,255,.14); color:var(--accent); font-weight:600; }
+        .badge.ok { background:rgba(46,160,67,.16); color:#5BD07A; }
+        .badge.off { background:rgba(255,183,77,.14); color:#FFB74D; }
+        a { color:var(--accent); }
+        .toast { position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(140%);
+                 background:#222A38; color:#fff; padding:12px 18px; border-radius:12px; font-size:14px;
+                 box-shadow:0 8px 26px rgba(0,0,0,.5); transition:transform .22s; z-index:50; text-align:center; }
+        .toast.show { transform:translateX(-50%) translateY(0); }
+        .hint { color:var(--muted); font-size:12px; margin:8px 0 0; line-height:1.5; }
+        code { color:var(--accent); font-size:12px; word-break:break-all; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+
+    <h1>Настройки приложения <span class="badge" id="mode">…</span></h1>
+    <p class="sub">
+        Здесь задаются значения, которые приложение читает: текст верхней панели,
+        адреса, цвета, поведение. Можно применить сразу в установленном приложении
+        (кнопка «Применить») или сохранить на сервере — тогда все, кто открыл
+        приложение, получат эти значения.
+    </p>
+
+    <div class="card">
+        <h2>Сейчас в приложении</h2>
+        <pre id="current" style="font-size:12px;color:#93A0B3;white-space:pre-wrap;margin:0">загрузка…</pre>
+    </div>
+
+    <div class="card">
+        <h2>Основное</h2>
+
+        <label class="f">Текст верхней панели (title)</label>
+        <input type="text" id="title" placeholder="Например: Tornado">
+
+        <label class="f">Цвет статус-бара</label>
+        <div class="row2">
+            <input type="text" id="statusBarColor" value="#171B24" placeholder="#171B24">
+            <input type="text" id="accentColor" value="#4C8DFF" placeholder="#4C8DFF">
+        </div>
+
+        <label class="f">Тема</label>
+        <select id="theme">
+            <option value="dark">dark — тёмная</option>
+            <option value="light">light — светлая</option>
+            <option value="system">system — как в системе</option>
+        </select>
+    </div>
+
+    <div class="card">
+        <h2>Адреса</h2>
+
+        <label class="f">control — указатель на индексную страницу</label>
+        <input type="text" id="controlUrl" placeholder="https://.../control">
+
+        <label class="f">settings.json — адрес удалённых настроек</label>
+        <input type="text" id="settingsUrl" placeholder="https://.../settings.json">
+
+        <label class="f">indexUrl — напрямую индекс (если задан, control не нужен)</label>
+        <input type="text" id="indexUrl" placeholder="https://tornado-2024.github.io/site/">
+
+        <label class="f">errorPageUrl — страница 404 для офлайна</label>
+        <input type="text" id="errorPageUrl" placeholder="https://.../errors/404/">
+
+        <label class="f">passwordUrl — файл с хэшем пароля</label>
+        <input type="text" id="passwordUrl" placeholder="https://.../password">
+    </div>
+
+    <div class="card">
+        <h2>Поведение</h2>
+
+        <div class="switch">
+            <label>Показывать кнопку настроек в шапке
+                <span class="hint">settingsEnabled — иначе раздел открывается 5 тапами по заголовку</span></label>
+            <input type="checkbox" id="settingsEnabled">
+        </div>
+        <div class="switch">
+            <label>Требовать пароль для настроек
+                <span class="hint">requirePassword — пароль берётся из файла passwordUrl</span></label>
+            <input type="checkbox" id="requirePassword" checked>
+        </div>
+        <div class="switch">
+            <label>Показывать верхнюю панель
+                <span class="hint">showHeader</span></label>
+            <input type="checkbox" id="showHeader" checked>
+        </div>
+        <div class="switch">
+            <label>Обновлять контент при запуске
+                <span class="hint">refreshOnStart</span></label>
+            <input type="checkbox" id="refreshOnStart" checked>
+        </div>
+        <div class="switch">
+            <label>Кэшировать страницы на диск
+                <span class="hint">cacheEnabled — без этого офлайн не покажет сохранённую страницу</span></label>
+            <input type="checkbox" id="cacheEnabled" checked>
+        </div>
+
+        <label class="f">Таймаут запросов, мс</label>
+        <input type="number" id="timeoutMs" value="15000" min="1000" step="500">
+
+        <label class="f">Свой User-Agent (пусто — стандартный)</label>
+        <input type="text" id="userAgent" placeholder="TornadoControl/1.0 (Android)">
+    </div>
+
+    <div class="card">
+        <h2>Пароль для раздела настроек</h2>
+        <label class="f">Пароль (в репозиторий попадёт только sha256)</label>
+        <div class="row2">
+            <input type="password" id="pwd" placeholder="новый пароль">
+            <button onclick="hashPwd()">Посчитать sha256</button>
+        </div>
+        <p class="hint" id="pwdOut">Нажмите «Посчитать sha256» — готовый хэш нужно положить в файл
+            <code>password</code> в репозитории проекта.</p>
+    </div>
+
+    <div class="card">
+        <h2>Готовый settings.json</h2>
+        <textarea id="json" spellcheck="false"></textarea>
+        <div class="grid" style="margin-top:10px">
+            <button class="primary" onclick="apply()">Применить в приложении</button>
+            <button onclick="copyJson()">Скопировать</button>
+            <button onclick="downloadJson()">Скачать файл</button>
+            <button onclick="reset()">Сбросить</button>
+        </div>
+        <p class="hint" id="applyOut"></p>
+        <p class="hint">
+            Чтобы значения получили все: сохраните JSON как <code>settings.json</code> в репозитории
+            проекта и запушите — приложение подхватит их автоматически.
+            <a id="ghLink" href="https://github.com/tornado-2024/project/edit/main/settings.json" target="_blank">Открыть settings.json на GitHub</a>
+        </p>
+    </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var A = window.Android || window.Native || null;
+var isNative = !!(A && typeof A.getSettings === 'function');
+
+function toast(t) {
+    if (isNative && typeof A.toast === 'function') { A.toast(t); return; }
+    var el = document.getElementById('toast');
+    el.textContent = t; el.classList.add('show');
+    setTimeout(function () { el.classList.remove('show'); }, 1800);
+}
+
+var FIELDS = ['title', 'statusBarColor', 'accentColor', 'theme', 'controlUrl', 'settingsUrl',
+              'indexUrl', 'errorPageUrl', 'passwordUrl', 'timeoutMs', 'userAgent'];
+var BOOLS = ['settingsEnabled', 'requirePassword', 'showHeader', 'refreshOnStart', 'cacheEnabled'];
+
+function collect() {
+    var o = {};
+    FIELDS.forEach(function (k) {
+        var v = document.getElementById(k).value.trim();
+        if (v !== '') o[k] = (k === 'timeoutMs') ? parseInt(v, 10) : v;
+    });
+    BOOLS.forEach(function (k) { o[k] = document.getElementById(k).checked; });
+    return o;
+}
+
+function fill(o) {
+    FIELDS.forEach(function (k) {
+        if (o[k] !== undefined && o[k] !== null) document.getElementById(k).value = o[k];
+    });
+    BOOLS.forEach(function (k) {
+        if (o[k] !== undefined) document.getElementById(k).checked = !!o[k];
+    });
+}
+
+function refreshJson() {
+    document.getElementById('json').value = JSON.stringify(collect(), null, 2);
+}
+
+function apply() {
+    var json = JSON.stringify(collect());
+    refreshJson();
+    if (isNative && typeof A.applySettings === 'function') {
+        var ok = A.applySettings(json);
+        document.getElementById('applyOut').innerHTML = ok
+            ? '✓ Настройки применены в приложении. Заголовок и цвета обновятся сразу.'
+            : '✗ Не удалось применить (проверьте JSON).';
+        toast(ok ? 'Настройки применены' : 'Ошибка');
+    } else {
+        document.getElementById('applyOut').innerHTML =
+            'Страница открыта в браузере — применить в приложении нельзя. ' +
+            'Скопируйте JSON и сохраните его как settings.json в репозитории.';
+        toast('Скопируйте JSON');
+    }
+}
+
+function copyJson() {
+    refreshJson();
+    var txt = document.getElementById('json').value;
+    if (isNative && typeof A.copy === 'function') { A.copy(txt); toast('Скопировано'); return; }
+    if (navigator.clipboard) { navigator.clipboard.writeText(txt).then(function () { toast('Скопировано'); }); return; }
+    document.getElementById('json').select();
+    toast('Выделите и скопируйте текст');
+}
+
+function downloadJson() {
+    refreshJson();
+    var blob = new Blob([document.getElementById('json').value], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'settings.json';
+    a.click();
+    toast('Файл сохранён');
+}
+
+function reset() {
+    if (isNative && typeof A.resetSettings === 'function') {
+        A.resetSettings();
+        toast('Локальные настройки сброшены');
+    }
+    load();
+}
+
+function hashPwd() {
+    var p = document.getElementById('pwd').value;
+    if (!p) { toast('Введите пароль'); return; }
+    if (!window.crypto || !crypto.subtle) { toast('SHA-256 недоступен'); return; }
+    crypto.subtle.digest('SHA-256', new TextEncoder().encode(p)).then(function (buf) {
+        var h = ''; new Uint8Array(buf).forEach(function (b) { h += ('0' + b.toString(16)).slice(-2); });
+        document.getElementById('pwdOut').innerHTML =
+            'sha256: <code>' + h + '</code> — сохраните это в файл <code>password</code>';
+        navigator.clipboard && navigator.clipboard.writeText(h);
+        toast('Хэш скопирован');
+    });
+}
+
+function load() {
+    var mode = document.getElementById('mode');
+    if (isNative) {
+        mode.textContent = 'в приложении'; mode.className = 'badge ok';
+        try {
+            var s = JSON.parse(A.getSettings());
+            document.getElementById('current').textContent = JSON.stringify(s, null, 2);
+            fill(s);
+            document.getElementById('ghLink').href =
+                'https://github.com/tornado-2024/project/edit/main/settings.json';
+        } catch (e) {
+            document.getElementById('current').textContent = 'getSettings(): ' + e;
+        }
+    } else {
+        mode.textContent = 'в браузере'; mode.className = 'badge off';
+        document.getElementById('current').textContent =
+            'Приложение недоступно — здесь можно только собрать и скопировать JSON.';
+        fill({
+            controlUrl: 'https://raw.githubusercontent.com/tornado-2024/project/refs/heads/main/control',
+            settingsUrl: 'https://raw.githubusercontent.com/tornado-2024/project/refs/heads/main/settings.json',
+            indexUrl: 'https://tornado-2024.github.io/site/',
+            errorPageUrl: 'https://tornado-2024.github.io/site/errors/404/',
+            passwordUrl: 'https://raw.githubusercontent.com/tornado-2024/project/refs/heads/main/password'
+        });
+    }
+    refreshJson();
+}
+
+FIELDS.concat(BOOLS).forEach(function (k) {
+    var el = document.getElementById(k);
+    if (el) el.addEventListener('input', refreshJson);
+    if (el) el.addEventListener('change', refreshJson);
+});
+
+load();
+</script>
+</body>
+</html>

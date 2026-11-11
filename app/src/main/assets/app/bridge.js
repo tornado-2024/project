@@ -87,8 +87,11 @@
                 return false;
             }
             if (hasNative()) {
-                return call('vibratePattern', [JSON.stringify(arr),
-                    repeat === undefined ? -1 : repeat]);
+                var json = JSON.stringify(arr);
+                if (repeat === undefined || repeat === null) {
+                    return call('vibratePattern', [json]);
+                }
+                return call('vibratePatternRepeat', [json, repeat]);
             }
             if (navigator.vibrate) {
                 try {

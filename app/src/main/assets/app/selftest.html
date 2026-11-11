@@ -74,6 +74,7 @@
         <button onclick="t('vibrate',[150])">150 мс</button>
         <button onclick="t('vibrate',[800])">800 мс</button>
         <button onclick="t('vibratePattern',['[0,40,80,40]'])" style="grid-column:span 2">Паттерн [0,40,80,40]</button>
+        <button onclick="t('vibratePatternRepeat',['[0,40]',2])">Паттерн ×2</button>
         <button onclick="t('vibrateEffect',['heavy'])">heavy</button>
         <button onclick="t('vibrateEffect',['tick'])">tick</button>
         <button onclick="t('vibrateEffect',['notification'])">notification</button>
@@ -221,6 +222,8 @@ function runAll() {
     mark('vibrate(30)', r.ok, '');
     r = t('vibratePattern', ['[0,40,80,40]']);
     mark('vibratePattern', r.ok, '');
+    r = t('vibratePatternRepeat', ['[0,40]', 2]);
+    mark('vibratePatternRepeat', r.ok, '');
     ['click', 'tick', 'heavy', 'notification', 'success', 'error'].forEach(function (e) {
         var x = t('vibrateEffect', [e]);
         mark('vibrateEffect(' + e + ')', x.ok, '');

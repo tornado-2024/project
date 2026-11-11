@@ -63,22 +63,39 @@ public class JsBridge {
             }
         } catch (Exception e) {
             Log.w(TAG, "vibrate failed", e);
+            Log2File.e(TAG, "vibrate failed", e);
         }
     }
 
     /**
      * Вибрация по паттерну. pattern — JSON-массив вида "[0,50,120,50]" (мс),
-     * где чётные элементы — паузы, нечётные — вибрация. repeat = -1 — повторять бесконечно.
+     * где чётные элементы — паузы, нечётные — вибрация. Повтор бесконечный.
      */
     @JavascriptInterface
-    public boolean vibratePattern(String pattern, int repeat) {
+    public boolean vibratePattern(String pattern) {
+        return vibratePatternInternal(pattern, -1);
+    }
+
+    /** То же, но с числом повторов: 0 — один раз, 1 — два раза, -1 — бесконечно. */
+    @JavascriptInterface
+    public boolean vibratePatternRepeat(String pattern, int repeat) {
+        return vibratePatternInternal(pattern, repeat);
+    }
+
+    private boolean vibratePatternInternal(String pattern, int repeat) {
         Vibrator v = vibrator();
         if (v == null || !v.hasVibrator()) return false;
+        long[] steps = parsePattern(pattern);
+        if (steps.length == 0) return false;
         try {
-            long[] steps = parsePattern(pattern);
-            if (steps.length == 0) return false;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                v.vibrate(VibrationEffect.createWaveform(steps, repeat));
+                try {
+                    // createWaveform(timings, repeat) — амплитуда не задаётся
+                    v.vibrate(VibrationEffect.createWaveform(steps, repeat));
+                } catch (Exception e1) {
+                    Log2File.i(TAG, "vibratePattern: fallback без повтора (" + e1 + ")");
+                    v.vibrate(VibrationEffect.createWaveform(steps, -1));
+                }
             } else {
                 //noinspection deprecation
                 v.vibrate(steps, repeat);
@@ -86,7 +103,15 @@ public class JsBridge {
             return true;
         } catch (Exception e) {
             Log.w(TAG, "vibratePattern failed", e);
-            return false;
+            Log2File.e(TAG, "vibratePattern failed", e);
+            try {
+                //noinspection deprecation
+                v.vibrate(steps, repeat);
+                return true;
+            } catch (Exception e2) {
+                Log2File.e(TAG, "vibratePattern fallback failed", e2);
+                return false;
+            }
         }
     }
 
@@ -130,10 +155,32 @@ public class JsBridge {
                     amp = 120;
                     break;
             }
-            v.vibrate(VibrationEffect.createWaveform(timings, amp));
-            return true;
+            try {
+                // амплитуда задаётся массивом: createWaveform(timings, amplitudes, repeat)
+                v.vibrate(VibrationEffect.createWaveform(timings, new int[]{amp}, -1));
+                return true;
+            } catch (Exception e) {
+                Log2File.i(TAG, "vibrateEffect(" + t + "): fallback без амплитуды (" + e + ")");
+                try {
+                    // на части прошивок амплитуда не поддерживается — пробуем без неё
+                    v.vibrate(VibrationEffect.createWaveform(timings, -1));
+                    return true;
+                } catch (Exception e2) {
+                    Log.w(TAG, "vibrateEffect failed", e2);
+                    Log2File.e(TAG, "vibrateEffect failed", e2);
+                    try {
+                        //noinspection deprecation
+                        v.vibrate(timings, -1);
+                        return true;
+                    } catch (Exception e3) {
+                        Log2File.e(TAG, "vibrateEffect fallback failed", e3);
+                        return false;
+                    }
+                }
+            }
         } catch (Exception e) {
             Log.w(TAG, "vibrateEffect failed", e);
+            Log2File.e(TAG, "vibrateEffect failed", e);
             return false;
         }
     }

@@ -107,8 +107,10 @@ public final class RemoteSettings {
             if (o.has("accentColor")) accentColor = str(o, "accentColor", accentColor);
             if (o.has("userAgent")) userAgent = str(o, "userAgent", userAgent);
             if (o.has("iconVariant")) iconVariant = str(o, "iconVariant", iconVariant);
-        } catch (Exception ignored) {
-            // битый JSON — остаются текущие значения
+        } catch (Exception e) {
+            // битый JSON — остаются текущие значения, но сообщаем об этом в лог
+            Log2File.e("Settings", "settings.json не разбирается: " + e.getMessage(), e);
+            android.util.Log.w("Settings", "settings.json не разбирается", e);
         }
     }
 

@@ -374,6 +374,44 @@ public class JsBridge {
         }
     }
 
+    /**
+     * Применить настройки из JSON (со страницы настроек).
+     * Приоритет: локальные > удалённые > сохранённые > по умолчанию.
+     */
+    @JavascriptInterface
+    public boolean applySettings(String json) {
+        boolean ok = act.applyLocalSettings(json);
+        Log2File.i("JS", "applySettings: " + (ok ? "ok" : "ошибка"));
+        return ok;
+    }
+
+    /** Сбросить локальные переопределения настроек. */
+    @JavascriptInterface
+    public void resetSettings() {
+        act.clearLocalSettings();
+        Log2File.i("JS", "resetSettings");
+    }
+
+    /** Переключить иконку приложения: default | light | dark | beta | all. */
+    @JavascriptInterface
+    public boolean setIconVariant(String variant) {
+        boolean ok = IconManager.apply(act, variant);
+        Log2File.i("JS", "setIconVariant(" + variant + "): " + ok);
+        return ok;
+    }
+
+    /** Список вариантов иконки (JSON). */
+    @JavascriptInterface
+    public String getIconVariants() {
+        return IconManager.toJson(act);
+    }
+
+    /** Активный вариант иконки. */
+    @JavascriptInterface
+    public String getIconVariant() {
+        return IconManager.current(act);
+    }
+
     /** URL индексной страницы, полученный из control. */
     @JavascriptInterface
     public String getIndexUrl() {

@@ -14,5 +14,6 @@
   "theme": "dark",
   "statusBarColor": "#171B24",
   "accentColor": "#4C8DFF",
-  "userAgent": ""
+  "userAgent": "",
+  "iconVariant": ""
 }

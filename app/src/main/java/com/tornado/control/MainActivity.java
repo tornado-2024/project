@@ -474,18 +474,52 @@ public class MainActivity extends Activity {
 
     /** Загружает удалённые настройки; при отсутствии сети — последние принятые. */
     private RemoteSettings loadRemoteSettings() {
-        RemoteSettings s = RemoteSettings.fromJson(prefs.lastRemoteSettingsJson());
+        RemoteSettings s = RemoteSettings.defaults();
+        s.applyJson(prefs.lastRemoteSettingsJson());
+
         String url = prefs.settingsUrlOverride();
         if (url.isEmpty()) url = s.settingsUrl;
-        if (url == null || url.isEmpty()) return s;
-        HttpClient.Resp r = HttpClient.get(url, 10000, s.userAgent);
-        if (r.isOk()) {
-            RemoteSettings fresh = RemoteSettings.fromJson(r.text());
-            fresh.settingsUrl = url;
-            prefs.setLastRemoteSettingsJson(fresh.toJson());
-            s = fresh;
+        if (url != null && !url.isEmpty()) {
+            HttpClient.Resp r = HttpClient.get(url, 10000, s.userAgent);
+            if (r.isOk()) {
+                RemoteSettings fresh = RemoteSettings.defaults();
+                fresh.applyJson(r.text());
+                fresh.settingsUrl = url;
+                prefs.setLastRemoteSettingsJson(fresh.toJson());
+                s = fresh;
+            }
         }
+        // локальные значения (со страницы настроек) имеют приоритет
+        s.applyJson(prefs.localSettingsJson());
         return s;
+    }
+
+    /**
+     * Применяет настройки, присланные со страницы настроек (JS → Android).
+     * Приоритет: локальные > удалённые > сохранённые > значения по умолчанию.
+     */
+    public boolean applyLocalSettings(String json) {
+        if (json == null || json.trim().isEmpty()) return false;
+        try {
+            RemoteSettings test = RemoteSettings.fromJson(json.trim());
+            if (test == null) return false;
+            prefs.setLocalSettingsJson(json.trim());
+            final RemoteSettings s = test;
+            ui.post(() -> {
+                applySettings(s);
+                refresh();
+            });
+            return true;
+        } catch (Exception e) {
+            Log.w(TAG, "applyLocalSettings failed", e);
+            return false;
+        }
+    }
+
+    /** Сбрасывает локальные переопределения настроек. */
+    public void clearLocalSettings() {
+        prefs.setLocalSettingsJson("");
+        ui.post(this::refresh);
     }
 
     /** Адрес страницы 404: из настроек, иначе — относительно индекса, иначе — control + /errors/404/. */
@@ -541,6 +575,11 @@ public class MainActivity extends Activity {
             int accent = parseColor(s.accentColor, 0xFF4C8DFF);
             btnSettings.setColorFilter(accent);
         } catch (Exception ignored) {
+        }
+
+        // иконка приложения: если задана в настройках — переключаем
+        if (s.iconVariant != null && !s.iconVariant.trim().isEmpty()) {
+            IconManager.apply(this, s.iconVariant);
         }
     }
 
@@ -656,6 +695,36 @@ public class MainActivity extends Activity {
             refresh();
         });
         box.addView(reset);
+
+        box.addView(label("Иконка приложения (в лаунчере):"));
+        LinearLayout icons = new LinearLayout(this);
+        icons.setOrientation(LinearLayout.VERTICAL);
+        String cur = IconManager.current(this);
+        TextView curIcon = new TextView(this);
+        curIcon.setTextSize(12);
+        curIcon.setPadding(0, 0, 0, dp(4));
+        curIcon.setText("Сейчас: " + IconManager.title(cur)
+                + " (включено вариантов: " + IconManager.countEnabled(this) + ")");
+        icons.addView(curIcon);
+        for (String id : IconManager.ids()) {
+            Button b = new Button(this);
+            b.setText(IconManager.title(id) + (id.equals(cur) ? "  ✓" : ""));
+            b.setOnClickListener(v -> {
+                IconManager.apply(MainActivity.this, id);
+                Toast.makeText(MainActivity.this, "Иконка: " + IconManager.title(id), Toast.LENGTH_SHORT).show();
+                showSettingsDialog();
+            });
+            icons.addView(b);
+        }
+        Button allBtn = new Button(this);
+        allBtn.setText(IconManager.title("all"));
+        allBtn.setOnClickListener(v -> {
+            IconManager.apply(MainActivity.this, "all");
+            Toast.makeText(MainActivity.this, "Все иконки включены", Toast.LENGTH_SHORT).show();
+            showSettingsDialog();
+        });
+        icons.addView(allBtn);
+        box.addView(icons);
 
         Button clear = new Button(this);
         clear.setText("Очистить кэш");

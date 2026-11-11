@@ -138,6 +138,25 @@
     </div>
 
     <div class="card">
+        <h2>Иконка приложения</h2>
+        <label class="f">Вариант иконки в лаунчере</label>
+        <select id="iconVariant">
+            <option value="">не менять (текущий: <span id="curIcon">?</span>)</option>
+            <option value="default">Стандартная (синяя)</option>
+            <option value="light">Светлая</option>
+            <option value="dark">Тёмная</option>
+            <option value="beta">Beta (оранжевая)</option>
+            <option value="all">Все сразу (несколько иконок в лаунчере)</option>
+        </select>
+        <div class="grid" style="margin-top:8px">
+            <button onclick="applyIcon()">Применить иконку сейчас</button>
+            <button onclick="showIcons()">Какие иконки есть</button>
+        </div>
+        <p class="hint" id="iconOut">Вариант иконки можно задать и через настройки приложения
+            (⚙ → «Иконка приложения»).</p>
+    </div>
+
+    <div class="card">
         <h2>Пароль для раздела настроек</h2>
         <label class="f">Пароль (в репозиторий попадёт только sha256)</label>
         <div class="row2">
@@ -191,6 +210,8 @@ function collect() {
         if (v !== '') o[k] = (k === 'timeoutMs') ? parseInt(v, 10) : v;
     });
     BOOLS.forEach(function (k) { o[k] = document.getElementById(k).checked; });
+    var iv = document.getElementById('iconVariant').value;
+    if (iv) o.iconVariant = iv;
     return o;
 }
 
@@ -251,6 +272,30 @@ function reset() {
     load();
 }
 
+function applyIcon() {
+    var v = document.getElementById('iconVariant').value;
+    if (!v) { toast('Выберите вариант'); return; }
+    if (isNative && typeof A.setIconVariant === 'function') {
+        var ok = A.setIconVariant(v);
+        document.getElementById('iconOut').textContent = ok
+            ? '✓ Иконка переключена. Если иконка в лаунчере не изменилась — обновите экран телефона (долгое нажатие → «Информация о приложении» → «Применить»).'
+            : '✗ Не удалось переключить.';
+        toast(ok ? 'Иконка переключена' : 'Ошибка');
+    } else {
+        toast('Только в приложении');
+    }
+}
+
+function showIcons() {
+    if (isNative && typeof A.getIconVariants === 'function') {
+        var v = A.getIconVariants();
+        try { v = JSON.stringify(JSON.parse(v), null, 2); } catch (e) {}
+        document.getElementById('iconOut').textContent = v;
+    } else {
+        document.getElementById('iconOut').textContent = 'Доступно только в приложении.';
+    }
+}
+
 function hashPwd() {
     var p = document.getElementById('pwd').value;
     if (!p) { toast('Введите пароль'); return; }
@@ -272,6 +317,9 @@ function load() {
             var s = JSON.parse(A.getSettings());
             document.getElementById('current').textContent = JSON.stringify(s, null, 2);
             fill(s);
+            if (typeof A.getIconVariant === 'function') {
+                document.getElementById('curIcon').textContent = A.getIconVariant();
+            }
             document.getElementById('ghLink').href =
                 'https://github.com/tornado-2024/project/edit/main/settings.json';
         } catch (e) {

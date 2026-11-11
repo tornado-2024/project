@@ -79,6 +79,15 @@ public final class Prefs {
         sp.edit().putString("last_error_url", v == null ? "" : v).apply();
     }
 
+    /** Локальный переопределитель настроек (задаётся со страницы настроек через JS). */
+    public String localSettingsJson() {
+        return sp.getString("local_settings", "");
+    }
+
+    public void setLocalSettingsJson(String v) {
+        sp.edit().putString("local_settings", v == null ? "" : v).apply();
+    }
+
     public long lastUpdate() {
         return sp.getLong("last_update", 0L);
     }

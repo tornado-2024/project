@@ -68,6 +68,8 @@ public final class RemoteSettings {
     public String accentColor = "#4C8DFF";
     /** Свой User-Agent (пусто — стандартный). */
     public String userAgent = "";
+    /** Активная иконка приложения: default | light | dark | beta | all (пусто — не менять). */
+    public String iconVariant = "";
 
     public static RemoteSettings defaults() {
         return new RemoteSettings();
@@ -76,29 +78,38 @@ public final class RemoteSettings {
     /** Разбирает JSON. Любые неизвестные/битые поля просто игнорируются. */
     public static RemoteSettings fromJson(String json) {
         RemoteSettings s = new RemoteSettings();
-        if (json == null || json.trim().isEmpty()) return s;
+        s.applyJson(json);
+        return s;
+    }
+
+    /**
+     * Применяет только те ключи, которые реально есть в JSON.
+     * Нужно для приоритетов: по умолчанию &lt; сохранённые &lt; удалённые &lt; локальные.
+     */
+    public void applyJson(String json) {
+        if (json == null || json.trim().isEmpty()) return;
         try {
             JSONObject o = new JSONObject(json);
-            s.controlUrl = str(o, "controlUrl", s.controlUrl);
-            s.indexUrl = str(o, "indexUrl", s.indexUrl);
-            s.errorPageUrl = str(o, "errorPageUrl", s.errorPageUrl);
-            s.passwordUrl = str(o, "passwordUrl", s.passwordUrl);
-            s.settingsEnabled = bool(o, "settingsEnabled", s.settingsEnabled);
-            s.requirePassword = bool(o, "requirePassword", s.requirePassword);
-            s.title = str(o, "title", s.title);
-            s.showHeader = bool(o, "showHeader", s.showHeader);
-            s.refreshOnStart = bool(o, "refreshOnStart", s.refreshOnStart);
-            s.cacheEnabled = bool(o, "cacheEnabled", s.cacheEnabled);
-            s.timeoutMs = intv(o, "timeoutMs", s.timeoutMs);
-            s.theme = str(o, "theme", s.theme);
-            s.statusBarColor = str(o, "statusBarColor", s.statusBarColor);
-            s.accentColor = str(o, "accentColor", s.accentColor);
-            s.userAgent = str(o, "userAgent", s.userAgent);
-            s.settingsUrl = str(o, "settingsUrl", s.settingsUrl);
+            if (o.has("controlUrl")) controlUrl = str(o, "controlUrl", controlUrl);
+            if (o.has("settingsUrl")) settingsUrl = str(o, "settingsUrl", settingsUrl);
+            if (o.has("indexUrl")) indexUrl = str(o, "indexUrl", indexUrl);
+            if (o.has("errorPageUrl")) errorPageUrl = str(o, "errorPageUrl", errorPageUrl);
+            if (o.has("passwordUrl")) passwordUrl = str(o, "passwordUrl", passwordUrl);
+            if (o.has("settingsEnabled")) settingsEnabled = bool(o, "settingsEnabled", settingsEnabled);
+            if (o.has("requirePassword")) requirePassword = bool(o, "requirePassword", requirePassword);
+            if (o.has("title")) title = str(o, "title", title);
+            if (o.has("showHeader")) showHeader = bool(o, "showHeader", showHeader);
+            if (o.has("refreshOnStart")) refreshOnStart = bool(o, "refreshOnStart", refreshOnStart);
+            if (o.has("cacheEnabled")) cacheEnabled = bool(o, "cacheEnabled", cacheEnabled);
+            if (o.has("timeoutMs")) timeoutMs = intv(o, "timeoutMs", timeoutMs);
+            if (o.has("theme")) theme = str(o, "theme", theme);
+            if (o.has("statusBarColor")) statusBarColor = str(o, "statusBarColor", statusBarColor);
+            if (o.has("accentColor")) accentColor = str(o, "accentColor", accentColor);
+            if (o.has("userAgent")) userAgent = str(o, "userAgent", userAgent);
+            if (o.has("iconVariant")) iconVariant = str(o, "iconVariant", iconVariant);
         } catch (Exception ignored) {
-            // битый JSON — остаются значения по умолчанию
+            // битый JSON — остаются текущие значения
         }
-        return s;
     }
 
     /** Сериализация (для сохранения последних принятых настроек офлайн). */
@@ -120,6 +131,7 @@ public final class RemoteSettings {
             o.put("statusBarColor", statusBarColor);
             o.put("accentColor", accentColor);
             o.put("userAgent", userAgent);
+            o.put("iconVariant", iconVariant);
             o.put("settingsUrl", settingsUrl);
             return o.toString();
         } catch (Exception e) {

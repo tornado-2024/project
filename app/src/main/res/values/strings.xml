@@ -2,6 +2,9 @@
 <resources>
     <string name="app_name">Tornado Control</string>
     <string name="app_name_debug">Tornado Control (debug)</string>
+    <string name="app_name_light">Tornado Control (светлая)</string>
+    <string name="app_name_dark">Tornado Control (тёмная)</string>
+    <string name="app_name_beta">Tornado Control (beta)</string>
     <string name="app_name_android10">Tornado Control (Android 10)</string>
     <string name="badge_offline">OFFLINE</string>
     <string name="refresh">Обновить</string>

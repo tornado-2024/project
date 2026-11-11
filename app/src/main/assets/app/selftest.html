@@ -272,6 +272,13 @@ function runAll() {
         mark('getSettings', false, st.error);
     }
 
+    var iv = call('getIconVariants', []);
+    mark('getIconVariants', iv.ok, '');
+    var ic = call('getIconVariant', []);
+    mark('getIconVariant', ic.ok, String(ic.value));
+    var ivr = call('setIconVariant', ['default']);
+    mark('setIconVariant(default)', ivr.ok, '');
+
     var io = call('isOnline', []);
     mark('isOnline', io.ok, String(io.value));
     t('getIndexUrl', []);

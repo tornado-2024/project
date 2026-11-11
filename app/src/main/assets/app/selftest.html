@@ -116,6 +116,28 @@
 </section>
 
 <section>
+    <h2>Настройки</h2>
+    <div class="grid">
+        <button onclick="applyTitle()">applySettings (заголовок)</button>
+        <button onclick="resetCfg()">resetSettings</button>
+        <button onclick="openTestPage()">openTestPage</button>
+        <button onclick="show('getSettings')">показать настройки</button>
+    </div>
+    <p class="hint">applySettings меняет локальные настройки (приоритет над удалёнными),
+        resetSettings возвращает удалённые.</p>
+</section>
+
+<section>
+    <h2>Загруженный контент</h2>
+    <div class="grid">
+        <button onclick="resetDownloads()">resetDownloads (сбросить кэш и загрузки)</button>
+        <button onclick="location.href='settings.html'">страница настроек</button>
+    </div>
+    <p class="hint">Сброс удаляет кэш страниц и сохранённые адреса — приложение заново
+        скачает control, индекс и настройки с сервера.</p>
+</section>
+
+<section>
     <h2>Опасное</h2>
     <div class="grid">
         <button class="danger" onclick="t('exitApp',[])">exitApp</button>
@@ -210,6 +232,27 @@ function render() {
 }
 
 // ---------------------------------------------------------------- автотест
+function applyTitle() {
+    var t1 = prompt('Текст верхней панели:', 'Tornado (из теста)');
+    if (!t1) return;
+    var ok = call('applySettings', [JSON.stringify({ title: t1 })]);
+    log((ok.ok ? 'OK  ' : 'FAIL') + ' applySettings title="' + t1 + '"'
+        + (ok.ok ? '' : ' -> ' + ok.error));
+}
+function resetCfg() {
+    var ok = call('resetSettings', []);
+    log((ok.ok ? 'OK  ' : 'FAIL') + ' resetSettings' + (ok.ok ? '' : ' -> ' + ok.error));
+}
+function openTestPage() {
+    var ok = call('openTestPage', []);
+    log((ok.ok ? 'OK  ' : 'FAIL') + ' openTestPage');
+}
+function resetDownloads() {
+    if (!confirm('Сбросить кэш и загруженный контент?')) return;
+    var ok = call('resetDownloads', []);
+    log((ok.ok ? 'OK  ' : 'FAIL') + ' resetDownloads' + (ok.ok ? '' : ' -> ' + ok.error));
+}
+
 function runAll() {
     clearLog();
     log('=== Автотест: ' + new Date().toLocaleTimeString() + ' ===');
@@ -286,6 +329,16 @@ function runAll() {
     t('getErrorPageUrl', []);
 
     // --- проверка веб-части
+    var ap = call('applySettings', [JSON.stringify({ title: 'Tornado (из теста)' })]);
+    var s1 = call('getSettings', []);
+    var newTitle = '';
+    try { newTitle = JSON.parse(s1.value).title || ''; } catch (e) {}
+    mark('applySettings', ap.ok && newTitle === 'Tornado (из теста)', 'title=' + newTitle);
+    var rs = call('resetSettings', []);
+    mark('resetSettings', rs.ok, '');
+    var rt = call('openTestPage', []);
+    mark('openTestPage', rt.ok, '');
+
     mark('JS активен', true, navigator.userAgent.slice(0, 28));
     mark('navigator.onLine', true, String(navigator.onLine));
 

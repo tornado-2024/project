@@ -9,5 +9,6 @@
     <string name="badge_offline">OFFLINE</string>
     <string name="refresh">Обновить</string>
     <string name="settings">Настройки</string>
+    <string name="test_page">Тест моста</string>
     <string name="status_start">Запуск…</string>
 </resources>

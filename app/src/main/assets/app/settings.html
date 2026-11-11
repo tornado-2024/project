@@ -204,6 +204,16 @@
     </div>
 
     <div class="card">
+        <h2>Загруженный контент</h2>
+        <p class="hint">Кэш скачанных страниц и сохранённые адреса. Сброс заставит
+            приложение заново скачать control, индекс и настройки с сервера.</p>
+        <div class="grid" style="margin-top:8px">
+            <button class="danger" onclick="resetDownloads()">Сбросить загруженное</button>
+            <button onclick="openTest()">Открыть тест моста</button>
+        </div>
+    </div>
+
+    <div class="card">
         <h2>Пароль для раздела настроек</h2>
         <label class="f">Пароль (в репозиторий попадёт только sha256)</label>
         <div class="row2">
@@ -347,6 +357,24 @@ function showIcons() {
         document.getElementById('iconOut').textContent = v;
     } else {
         document.getElementById('iconOut').textContent = 'Доступно только в приложении.';
+    }
+}
+
+function resetDownloads() {
+    if (!confirm('Сбросить кэш и загруженный контент?')) return;
+    if (isNative && typeof A.resetDownloads === 'function') {
+        A.resetDownloads();
+        toast('Загруженное сброшено');
+    } else {
+        toast('Только в приложении');
+    }
+}
+
+function openTest() {
+    if (isNative && typeof A.openTestPage === 'function') {
+        A.openTestPage();
+    } else {
+        location.href = 'selftest.html';
     }
 }
 

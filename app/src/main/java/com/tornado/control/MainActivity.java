@@ -80,6 +80,7 @@ public class MainActivity extends Activity {
     private TextView badgeView;
     private ProgressBar progress;
     private ImageButton btnSettings;
+    private ImageButton btnTest;
 
     private Prefs prefs;
     private CacheStore cache;
@@ -138,6 +139,7 @@ public class MainActivity extends Activity {
         ImageButton refreshBtn = findViewById(R.id.btn_refresh);
         btnSettings = findViewById(R.id.btn_settings);
         refreshBtn.setOnClickListener(v -> refresh());
+        btnTest.setOnClickListener(v -> openBuiltInTest());
         btnSettings.setOnClickListener(v -> openSettings());
 
         // Скрытый доступ к настройкам: 5 быстрых тапов по заголовку
@@ -275,6 +277,34 @@ public class MainActivity extends Activity {
         } catch (Exception e) {
             return 0;
         }
+    }
+
+    /** Открывает встроенную тестовую страницу (assets/app/selftest.html). */
+    public void openBuiltInTest() {
+        String html = readAsset("app/selftest.html");
+        if (html == null) {
+            Toast.makeText(this, "Тестовая страница не найдена", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        web.loadDataWithBaseURL("file:///android_asset/app/selftest.html", html,
+                "text/html", "utf-8", null);
+        Log2File.i(TAG, "открыта встроенная тестовая страница");
+    }
+
+    /**
+     * Полный сброс загруженного: кэш страниц + сохранённые адреса и настройки.
+     * После этого приложение заново скачивает control, индекс и настройки.
+     */
+    public void resetDownloads() {
+        cache.clear();
+        prefs.setLastIndexUrl("");
+        prefs.setLastErrorPageUrl("");
+        prefs.setLastRemoteSettingsJson("");
+        Log2File.i(TAG, "сброс загруженного контента и кэша");
+        ui.post(() -> {
+            Toast.makeText(this, "Загруженный контент сброшен", Toast.LENGTH_SHORT).show();
+            refresh();
+        });
     }
 
     /** Показывает стектрейс ошибки вместо падения приложения. */
@@ -939,6 +969,13 @@ public class MainActivity extends Activity {
         cRefresh.setHint("Автообновление, секунд");
         cRefresh.setText(String.valueOf(eff.refreshIntervalSec));
         box.addView(cRefresh);
+
+        Button resetAll = new Button(this);
+        resetAll.setText("Сбросить загруженный контент и кэш");
+        resetAll.setOnClickListener(v -> {
+            resetDownloads();
+        });
+        box.addView(resetAll);
 
         Button clear = new Button(this);
         clear.setText("Очистить кэш");

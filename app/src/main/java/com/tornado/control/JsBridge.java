@@ -385,6 +385,19 @@ public class JsBridge {
         return ok;
     }
 
+    /** Сбросить загруженный контент: кэш страниц + сохранённые адреса/настройки. */
+    @JavascriptInterface
+    public void resetDownloads() {
+        act.resetDownloads();
+        Log2File.i("JS", "resetDownloads");
+    }
+
+    /** Открыть встроенную тестовую страницу. */
+    @JavascriptInterface
+    public void openTestPage() {
+        act.openBuiltInTest();
+    }
+
     /** Сбросить локальные переопределения настроек. */
     @JavascriptInterface
     public void resetSettings() {

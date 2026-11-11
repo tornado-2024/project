@@ -364,6 +364,18 @@ public class JsBridge {
         return act.getPrefs().lastErrorPageUrl();
     }
 
+    /** Последние записи лога приложения (если сборка debuggable). */
+    @JavascriptInterface
+    public String getLog() {
+        return Log2File.tail();
+    }
+
+    /** Показать лог приложения во весь экран. */
+    @JavascriptInterface
+    public void showLog() {
+        act.runOnUiThread(act::showLogDialog);
+    }
+
     /** Действующие удалённые настройки (JSON). */
     @JavascriptInterface
     public String getSettings() {

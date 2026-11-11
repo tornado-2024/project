@@ -128,6 +128,18 @@
 </section>
 
 <section>
+    <h2>Лог приложения</h2>
+    <div class="grid">
+        <button onclick="show('getLog')">getLog (показать)</button>
+        <button onclick="showLogWindow()">showLog (во весь экран)</button>
+        <button onclick="copyLog()">Скопировать лог</button>
+        <button onclick="location.reload()">Перезагрузить страницу</button>
+    </div>
+    <p class="hint">Лог пишется в debug-сборке. Его также можно открыть в приложении:
+        долгий тап по нижней строке статуса.</p>
+</section>
+
+<section>
     <h2>Загруженный контент</h2>
     <div class="grid">
         <button onclick="resetDownloads()">resetDownloads (сбросить кэш и загрузки)</button>
@@ -246,6 +258,17 @@ function resetCfg() {
 function openTestPage() {
     var ok = call('openTestPage', []);
     log((ok.ok ? 'OK  ' : 'FAIL') + ' openTestPage');
+}
+function showLogWindow() {
+    var ok = call('showLog', []);
+    log((ok.ok ? 'OK  ' : 'FAIL') + ' showLog');
+}
+function copyLog() {
+    var l = call('getLog', []);
+    if (!l.ok || !l.value) { log('лог пуст'); return; }
+    if (A && typeof A.copy === 'function') { A.copy(l.value); log('лог скопирован'); return; }
+    if (navigator.clipboard) { navigator.clipboard.writeText(l.value); log('лог скопирован'); return; }
+    log('не удалось скопировать');
 }
 function resetDownloads() {
     if (!confirm('Сбросить кэш и загруженный контент?')) return;

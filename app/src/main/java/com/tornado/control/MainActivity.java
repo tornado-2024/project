@@ -7,6 +7,8 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -34,6 +36,7 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -152,6 +155,12 @@ public class MainActivity extends Activity {
                 tapCount = 0;
                 openSettings();
             }
+        });
+
+        // долгий тап по нижней строке — показать лог приложения
+        statusView.setOnLongClickListener(v -> {
+            showLogDialog();
+            return true;
         });
 
         setupWebView();
@@ -276,6 +285,48 @@ public class MainActivity extends Activity {
             return Integer.parseInt(s.trim());
         } catch (Exception e) {
             return 0;
+        }
+    }
+
+    /** Показывает последние записи лога прямо в приложении (копируется в буфер). */
+    public void showLogDialog() {
+        String body = Log2File.tail();
+        final String txt;
+        if (body == null || body.trim().isEmpty()) {
+            txt = "(лог пуст)\n\nЛог пишется только в debug-сборке "
+                    + "(android:debuggable=true) и хранится в:\n"
+                    + "• /storage/emulated/0/Download/tornado-app.log\n"
+                    + "• " + safeLogPath();
+        } else {
+            txt = body;
+        }
+        TextView tv = new TextView(this);
+        tv.setTextSize(11);
+        tv.setTextIsSelectable(true);
+        tv.setPadding(24, 16, 24, 16);
+        tv.setText(txt);
+        ScrollView sv = new ScrollView(this);
+        sv.addView(tv);
+        new AlertDialog.Builder(this)
+                .setTitle("Лог приложения")
+                .setView(sv)
+                .setPositiveButton("Скопировать", (d, w) -> {
+                    ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                    if (cm != null) {
+                        cm.setPrimaryClip(ClipData.newPlainText("Tornado log", txt));
+                        Toast.makeText(this, "Лог скопирован", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("Закрыть", null)
+                .show();
+    }
+
+    private String safeLogPath() {
+        try {
+            String p = Log2File.path();
+            return p == null ? "неизвестно" : p;
+        } catch (Exception e) {
+            return "неизвестно";
         }
     }
 
@@ -970,6 +1021,11 @@ public class MainActivity extends Activity {
         cRefresh.setText(String.valueOf(eff.refreshIntervalSec));
         box.addView(cRefresh);
 
+        Button showLog = new Button(this);
+        showLog.setText("Показать лог приложения");
+        showLog.setOnClickListener(v -> showLogDialog());
+        box.addView(showLog);
+
         Button resetAll = new Button(this);
         resetAll.setText("Сбросить загруженный контент и кэш");
         resetAll.setOnClickListener(v -> {
@@ -1037,6 +1093,9 @@ public class MainActivity extends Activity {
         } else {
             String html = readAsset("app/offline.html");
             if (html == null) html = "<html><body>Нет соединения</body></html>";
+            // подставляем причину прямо в страницу — чтобы было видно сразу
+            html = html.replace("<!--REASON-->",
+                    "<p style=\"color:#FFB74D\">Причина: " + escapeHtml(reason) + "</p>");
             web.loadDataWithBaseURL(null, html, "text/html", "utf-8", null);
             setStatus((netErr ? "Оффлайн · нет сохранённой страницы 404" : "Сервер: " + reason), netErr);
         }
@@ -1252,6 +1311,13 @@ public class MainActivity extends Activity {
         } catch (Exception e) {
             return def;
         }
+    }
+
+    /** Экранирование текста для вставки в HTML. */
+    static String escapeHtml(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                .replace("\"", "&quot;");
     }
 
     private static String nowTime() {

@@ -1,7 +1,13 @@
 package com.tornado.control;
 
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.util.Log;
 
 import java.io.File;
@@ -25,6 +31,10 @@ public final class Log2File {
 
     private static final String TAG = "AppLog";
     private static File file;
+    private static Uri mediaUri;
+    /** Хвост лога в памяти — чтобы показать его прямо в приложении. */
+    private static final StringBuilder TAIL = new StringBuilder();
+    private static final int MAX_TAIL = 96 * 1024;
     private static final SimpleDateFormat TIME =
             new SimpleDateFormat("HH:mm:ss.SSS", Locale.US);
 
@@ -68,9 +78,38 @@ public final class Log2File {
                 file = c;
                 break;
             }
+            ctxRef = ctx.getApplicationContext();
+            mediaUri = openMediaLog(ctx);
         } catch (Exception e) {
             file = null;
         }
+    }
+
+    /**
+     * Открывает/создаёт лог в «Загрузках» через MediaStore —
+     * тогда его видно из Termux (обычная папка Android/data закрыта).
+     */
+    private static Uri openMediaLog(Context ctx) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null;
+        try {
+            ContentResolver cr = ctx.getContentResolver();
+            ContentValues v = new ContentValues();
+            v.put(MediaStore.Downloads.DISPLAY_NAME, "tornado-app.log");
+            v.put(MediaStore.Downloads.MIME_TYPE, "text/plain");
+            v.put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
+            Uri uri = cr.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
+            if (uri == null) return null;
+            java.io.OutputStream os = cr.openOutputStream(uri, "wa");
+            if (os != null) os.close();
+            return uri;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** Хвост лога (последние записи) — для показа в приложении и через JS. */
+    public static synchronized String tail() {
+        return TAIL.toString();
     }
 
     public static synchronized boolean isEnabled() {
@@ -90,7 +129,7 @@ public final class Log2File {
     }
 
     private static void write(String level, String tag, String msg, Throwable t) {
-        if (file == null) return;
+        if (file == null && mediaUri == null) return;
         try {
             StringBuilder sb = new StringBuilder();
             sb.append(TIME.format(new Date()))
@@ -101,19 +140,43 @@ public final class Log2File {
                 sb.append(Log.getStackTraceString(t));
             }
             sb.append('\n');
-            Writer w = new OutputStreamWriter(new FileOutputStream(file, true),
-                    StandardCharsets.UTF_8);
-            try {
-                w.write(sb.toString());
-                w.flush();
-            } finally {
+            String line = sb.toString();
+            TAIL.append(line);
+            if (TAIL.length() > MAX_TAIL) {
+                TAIL.delete(0, TAIL.length() - MAX_TAIL);
+            }
+            if (file != null) {
+                Writer w = new OutputStreamWriter(new FileOutputStream(file, true),
+                        StandardCharsets.UTF_8);
                 try {
-                    w.close();
-                } catch (Exception ignored) {
+                    w.write(line);
+                    w.flush();
+                } finally {
+                    try {
+                        w.close();
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+            if (mediaUri != null) {
+                ContentResolver cr = ctxRef != null ? ctxRef.getContentResolver() : null;
+                if (cr != null) {
+                    java.io.OutputStream os = cr.openOutputStream(mediaUri, "wa");
+                    if (os != null) {
+                        try {
+                            os.write(line.getBytes(StandardCharsets.UTF_8));
+                            os.flush();
+                        } finally {
+                            os.close();
+                        }
+                    }
                 }
             }
         } catch (Exception ignored) {
             // логирование не должно ломать приложение
         }
     }
+
+    /** Контекст для записи через MediaStore. */
+    private static Context ctxRef;
 }

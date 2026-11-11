@@ -1,0 +1,200 @@
+# Tornado Control (Android)
+
+Приложение-обёртка: получает по сети **указатель** на индексную страницу, показывает её
+как содержимое приложения, умеет работать офлайн и предоставляет JavaScript-мост в Android.
+
+## Схема работы
+
+```
+settings.json ──► удалённые настройки (JSON)
+control       ──► указатель (URL) ──► индексная страница  (показывается)
+password      ──► хэш пароля (защищает раздел настроек)
+оффлайн      ──► сохранённая страница 404 (или встроенная заглушка)
+```
+
+По умолчанию:
+
+| Что | Адрес |
+|---|---|
+| указатель (control) | `https://raw.githubusercontent.com/tornado-2024/project/refs/heads/main/control` |
+| удалённые настройки | `https://raw.githubusercontent.com/tornado-2024/project/refs/heads/main/settings.json` |
+| хэш пароля | `https://raw.githubusercontent.com/tornado-2024/project/refs/heads/main/password` |
+
+Сейчас `control` отдаёт `https://tornado-2024.github.io/site/` — эта страница и открывается
+в приложении. Ответ `control` может быть:
+* plain-текст с URL — `https://example.com/`;
+* JSON — `{"url": "https://example.com/"}` (ключи: `url`, `index`, `indexUrl`, `link`, `page`, `href`, `target`, `site`);
+* HTML с `<meta http-equiv="refresh" content="0;url=...">`.
+
+## Удалённые настройки (JSON)
+
+Файл `settings.json` (если его нет — работают значения по умолчанию):
+
+```json
+{
+  "controlUrl":      "https://raw.githubusercontent.com/tornado-2024/project/refs/heads/main/control",
+  "indexUrl":        "",
+  "errorPageUrl":    "",
+  "passwordUrl":     "https://raw.githubusercontent.com/tornado-2024/project/refs/heads/main/password",
+  "settingsEnabled": false,
+  "requirePassword": true,
+  "title":           "Tornado",
+  "showHeader":      true,
+  "refreshOnStart":  true,
+  "cacheEnabled":    true,
+  "timeoutMs":       15000,
+  "theme":           "dark",
+  "statusBarColor":  "#171B24",
+  "accentColor":     "#4C8DFF",
+  "userAgent":       ""
+}
+```
+
+| Ключ | Смысл |
+|---|---|
+| `controlUrl` | откуда берётся URL индекса (указатель) |
+| `indexUrl` | если задан — открывается сразу, без запроса `control` |
+| `errorPageUrl` | адрес страницы 404 (кэшируется для офлайна); пусто → `index + errors/404/`, иначе `control + /errors/404/` |
+| `passwordUrl` | где лежит хэш пароля от раздела настроек |
+| `settingsEnabled` | показывать ли кнопку ⚙ в шапке (**по умолчанию false — раздел скрыт**) |
+| `requirePassword` | требовать ли пароль при открытии настроек |
+| `title` | название страницы в верхней строке (приоритетнее `<title>` страницы) |
+| `showHeader` | показывать ли верхнюю панель целиком |
+| `refreshOnStart` | обновлять контент при запуске |
+| `cacheEnabled` | кэшировать страницы на диск |
+| `timeoutMs` | таймаут сетевых запросов |
+| `theme` | `dark` / `light` |
+| `statusBarColor`, `accentColor` | цвета интерфейса |
+| `userAgent` | свой User-Agent для запросов |
+
+Настройки сохраняются локально, поэтому применяются и офлайн.
+
+## Раздел настроек
+
+По умолчанию кнопка ⚙ **скрыта** (`settingsEnabled: false`). Два способа попасть в настройки:
+
+1. **Скрытый вход** — 5 быстрых тапов по заголовку в верхней панели.
+2. **Удалённое включение** — `settingsEnabled: true` включает кнопку ⚙ в шапке.
+
+Если существует файл `password` (то есть `passwordUrl` отвечает 2xx) и `requirePassword: true`,
+то перед открытием настроек запрашивается пароль. Файл может содержать:
+
+```
+<64 hex-символа>          # sha256 от пароля
+sha256:<hex>               # то же, но с явным алгоритмом
+sha1:<hex>                # 40 hex-символов
+md5:<hex>
+plain:<пароль открытым текстом>
+```
+
+Сравнение регистронезависимое, для hex — по digest. Если файла `password` нет, пароль не
+запрашивается.
+
+В самом разделе можно локально переопределить адреса (`control`, `settings.json`), заголовок,
+всегда показывать кнопку настроек и очистить кэш.
+
+## JS → Android мост
+
+В странице доступны `window.Android` и `window.Native`, а также обёртка
+`window.Tornado` / `window.TC` (`assets/app/bridge.js`, подставляется после загрузки).
+
+### Вибрация
+| Вызов | Описание |
+|---|---|
+| `Android.vibrate(ms)` | одиночная вибрация, мс |
+| `Android.vibratePattern("[0,40,80,40]", -1)` | паттерн (JSON-массив мс), `repeat = -1` — бесконечно |
+| `Android.vibrateEffect('heavy')` | эффекты: `click`, `tick`, `heavy`, `notification`, `success`, `error` |
+| `Android.cancelVibration()` | остановить |
+| `Android.hasVibrator()` | есть ли вибромотор |
+
+### Интерфейс и система
+| Вызов | Описание |
+|---|---|
+| `Android.toast(text)` | Toast |
+| `Android.setTitle(title)` | заголовок верхней панели |
+| `Android.setStatusBarColor('#10131A')` | цвет статус-бара |
+| `Android.openUrl(url)` | открыть в системном браузере |
+| `Android.copy(text)` | буфер обмена |
+| `Android.share(text, title)` | «Поделиться» |
+| `Android.notify(title, text)` | системное уведомление (Android 13+ нужен `POST_NOTIFICATIONS`) |
+
+### Состояние
+| Вызов | Описание |
+|---|---|
+| `Android.getDeviceInfo()` | JSON: модель, Android, sdk, версия, `online`, адреса, размер кэша |
+| `Android.getSettings()` | действующие удалённые настройки (JSON) |
+| `Android.getIndexUrl()` | URL индексной страницы |
+| `Android.isOnline()` | есть ли сеть |
+| `Android.getControlUrl()` / `getErrorPageUrl()` | адреса |
+| `Android.reload()` / `refresh()` | перезагрузка / обновление с сервера |
+| `Android.showSettings()` | открыть настройки (с паролем, если включено) |
+| `Android.log(msg)` | запись в logcat (тег `TornadoBridge`) |
+| `Android.exitApp()` | закрыть приложение |
+
+```html
+<button onclick="Android.vibrate(150)">Вибрация</button>
+<script>console.log(JSON.parse(Android.getSettings()));</script>
+```
+
+## Структура проекта
+
+```
+TornadoControl/
+├── build.sh                       сборка без Gradle (aapt2 -> javac -> d8 -> apksigner)
+├── build.gradle, settings.gradle  вариант для Android Studio / CI
+├── keystore/control.jks           ключ подписи (генерируется автоматически)
+├── tools/
+│   └── strip_method_params.py     чинит совместимость javac 21 + d8
+└── app/src/main/
+    ├── AndroidManifest.xml
+    ├── assets/app/
+    │   ├── bridge.js              JS-обёртка над нативным мостом
+    │   ├── demo.html              демо-страница моста (работает офлайн)
+    │   └── offline.html           заглушка, когда нет сети и нет кэша
+    ├── java/com/tornado/control/
+    │   ├── MainActivity.java      WebView, загрузка, кэш, UI, настройки
+    │   ├── JsBridge.java          @JavascriptInterface — мост в Android
+    │   ├── RemoteSettings.java    удалённые настройки (JSON)
+    │   ├── Pointer.java           разбор control-указателя и проверка хэша
+    │   ├── HttpClient.java        HTTP-запросы (без внешних зависимостей)
+    │   ├── CacheStore.java        дисковый кэш (control, индекс, 404, подресурсы)
+    │   ├── Net.java               проверка сети
+    │   └── Prefs.java             локальные настройки и кэш последних удалённых
+    └── res/                       тема, layout, иконки
+```
+
+## Сборка
+
+### Termux (без Gradle, работает на aarch64)
+
+```bash
+pkg install aapt2 apksigner d8
+# android.jar: platforms/android-33 (API 33)
+bash build.sh            # -> app.apk
+```
+
+Шаги: `aapt2 compile` → `aapt2 link` → `javac --release 8` →
+`tools/strip_method_params.py` (вырезает атрибут `MethodParameters`, из-за которого
+старые d8/R8 падают на javac 21) → `d8` → `jar` → `apksigner` (v2+v3).
+
+### Android Studio / Gradle
+
+```bash
+./gradlew assembleRelease
+```
+
+Внешних зависимостей нет — только `android.webkit`, `android.os` и т.п.
+
+## Установка
+
+```bash
+adb install -r app.apk
+```
+
+или открыть `app.apk` из «Загрузок» на телефоне.
+
+## Отладка
+
+```bash
+adb logcat -s TornadoControl TornadoBridge chromium
+```

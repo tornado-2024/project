@@ -1,0 +1,6 @@
+// Gradle-проект для сборки в Android Studio (или в CI с Android SDK).
+// Обычная сборка:  ./gradlew assembleRelease
+// Сборка без Gradle (Termux): ./build.sh
+plugins {
+    id 'com.android.application' version '8.1.4' apply false
+}

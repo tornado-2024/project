@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Tornado Bridge — демо</title>
+    <style>
+        :root { color-scheme: dark; }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; padding: 16px;
+            background: #0E1116; color: #E6EAF2;
+            font-family: -apple-system, Roboto, "Segoe UI", system-ui, sans-serif;
+            font-size: 15px;
+        }
+        h1 { font-size: 18px; margin: 0 0 4px; }
+        p.sub { color: #8A94A6; font-size: 13px; margin: 0 0 16px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        button {
+            background: #171B24; color: #E6EAF2; border: 1px solid #262D3A;
+            padding: 14px 10px; border-radius: 12px; font-size: 14px; cursor: pointer;
+        }
+        button:active { background: #1F2632; }
+        button.primary { background: #4C8DFF; border-color: #4C8DFF; color: #fff; }
+        pre {
+            background: #12161E; border: 1px solid #232B38; border-radius: 12px;
+            padding: 12px; font-size: 12px; overflow: auto; max-height: 320px;
+            color: #A8B3C4; margin: 14px 0 0; white-space: pre-wrap; word-break: break-word;
+        }
+        .tag { display:inline-block; padding:2px 8px; border-radius: 6px; background:#1D2430; font-size:11px; color:#4C8DFF; }
+    </style>
+</head>
+<body>
+    <h1>JS → Android Bridge <span class="tag" id="mode">проверка…</span></h1>
+    <p class="sub">Страница работает офлайн из assets. Все кнопки вызывают нативные методы Android.</p>
+
+    <div class="grid">
+        <button class="primary" onclick="v(50)">Вибрация 50 мс</button>
+        <button onclick="v(300)">Вибрация 300 мс</button>
+        <button onclick="pattern()">Паттерн [0,40,80,40]</button>
+        <button onclick="effect('heavy')">Эффект heavy</button>
+        <button onclick="effect('notification')">Эффект notification</button>
+        <button onclick="toast()">Toast</button>
+        <button onclick="copyIt()">Копировать текст</button>
+        <button onclick="notif()">Уведомление</button>
+        <button onclick="title()">Сменить заголовок</button>
+        <button onclick="share()">Поделиться</button>
+        <button onclick="info()">Инфо об устройстве</button>
+        <button onclick="bar()">Цвет статус-бара</button>
+        <button onclick="reload()">Перезагрузить</button>
+    </div>
+
+    <pre id="out">Нажмите кнопку…</pre>
+
+    <script>
+        // Адаптер: использует обёртку Tornado (assets/app/bridge.js), если она загрузилась,
+        // иначе — напрямую нативный интерфейс window.Android / window.Native.
+        var native = window.Android || window.Native || null;
+        var B = window.Tornado || null;
+
+        var out = document.getElementById('out');
+        function log(msg) {
+            out.textContent = (typeof msg === 'string' ? msg : JSON.stringify(msg, null, 2));
+        }
+        function hasNative() { return !!(native && typeof native.vibrate === 'function'); }
+
+        function call(fn, args) {
+            try {
+                if (B && typeof B[fn] === 'function') { return B[fn].apply(B, args); }
+                if (native && typeof native[fn] === 'function') { return native[fn].apply(native, args); }
+            } catch (e) {
+                log('Ошибка вызова ' + fn + ': ' + e);
+            }
+            return null;
+        }
+
+        document.getElementById('mode').textContent = hasNative() ? 'native bridge' : 'web fallback';
+        document.getElementById('mode').style.color = hasNative() ? '#4C8DFF' : '#FFB74D';
+
+        function v(ms) { call('vibrate', [ms]); log('vibrate(' + ms + ')'); }
+        function pattern() { call('vibratePattern', [[0, 40, 80, 40]]); log('vibratePattern([0,40,80,40])'); }
+        function effect(t) { call('vibrateEffect', [t]); log('vibrateEffect("' + t + '")'); }
+        function toast() { call('toast', ['Привет из JavaScript']); log('toast()'); }
+        function copyIt() { call('copy', ['Tornado Control — скопировано из JS']); log('copy()'); }
+        function notif() { call('notify', ['Tornado Control', 'Тестовое уведомление из JS']); log('notify()'); }
+        function title() { call('setTitle', ['Мой заголовок']); log('setTitle()'); }
+        function share() { call('share', ['Проверка моста Android', 'Tornado Control']); log('share()'); }
+        function reload() { call('reload', []); log('reload()'); }
+        function bar() { call('setStatusBarColor', ['#1B6E3C']); log('setStatusBarColor(#1B6E3C)'); }
+        function info() {
+            var data = call('deviceInfo', []);
+            if (!data && native && typeof native.getDeviceInfo === 'function') {
+                try { data = JSON.parse(native.getDeviceInfo()); } catch (e) { data = null; }
+            }
+            log(data || 'нет данных');
+        }
+    </script>
+</body>
+</html>

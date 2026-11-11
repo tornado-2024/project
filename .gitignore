@@ -6,3 +6,7 @@ keystore/
 *.iml
 local.properties
 .gradle/
+
+# локальные секреты
+.last_generated_password
+password_plain.txt

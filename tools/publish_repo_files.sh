@@ -21,6 +21,9 @@ RANDOM_PASSWORD=0
 SITE_DIR=""
 SETTINGS_ONLY=0
 SETTINGS_FILE="settings.json"
+# Куда класть файлы: по умолчанию корень git-репозитория (а не текущий каталог!)
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+OUT_DIR="$REPO_ROOT"
 
 say()  { printf '\033[1;36m==>\033[0m %s\n' "$*"; }
 die()  { printf '\033[1;31m[x]\033[0m %s\n' "$*" >&2; exit 1; }
@@ -33,6 +36,7 @@ while [ $# -gt 0 ]; do
         --password)       PASSWORD="${2:-}"; shift 2 ;;
         --random-password) RANDOM_PASSWORD=1; shift ;;
         --site-dir)       SITE_DIR="${2:-}"; shift 2 ;;
+        --out-dir)        OUT_DIR="${2:-}"; shift 2 ;;
         --settings-file)  SETTINGS_FILE="${2:-}"; shift 2 ;;
         --settings-only)  SETTINGS_ONLY=1; shift ;;
         -h|--help)        sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
@@ -49,8 +53,9 @@ if [ "$RANDOM_PASSWORD" = "1" ]; then
 fi
 
 # ------------------------------------------------------------- settings.json
-say "создание $SETTINGS_FILE"
-cat > "$SETTINGS_FILE" <<EOF
+mkdir -p "$OUT_DIR"
+say "создание $OUT_DIR/$SETTINGS_FILE"
+cat > "$OUT_DIR/$SETTINGS_FILE" <<EOF
 {
   "controlUrl": "$CONTROL",
   "indexUrl": "",
@@ -78,16 +83,16 @@ fi
 
 # ------------------------------------------------------------------ password
 if [ -n "$PASSWORD" ]; then
-    say "создание password (sha256)"
-    printf '%s' "$PASSWORD" | sha256sum | cut -d' ' -f1 > password
-    echo "  хэш: $(cat password)"
+    say "создание $OUT_DIR/password (sha256)"
+    printf '%s' "$PASSWORD" | sha256sum | cut -d' ' -f1 > "$OUT_DIR/password"
+    echo "  хэш: $(cat "$OUT_DIR/password")"
     echo "  проверка: printf %s '$PASSWORD' | sha256sum"
 fi
 
 # --------------------------------------------------------------- страница 404
 TARGET_DIR="$SITE_DIR"
-[ -n "$TARGET_DIR" ] || TARGET_DIR="."
-say "создание errors/404/index.html в $TARGET_DIR"
+[ -n "$TARGET_DIR" ] || TARGET_DIR="$OUT_DIR"
+say "создание $TARGET_DIR/errors/404/index.html"
 mkdir -p "$TARGET_DIR/errors/404"
 cat > "$TARGET_DIR/errors/404/index.html" <<'EOF'
 <!DOCTYPE html>
@@ -121,9 +126,9 @@ cat > "$TARGET_DIR/errors/404/index.html" <<'EOF'
 EOF
 
 say "готово"
-echo "  $SETTINGS_FILE"
-[ -f password ] && echo "  password (sha256)"
+echo "  $OUT_DIR/$SETTINGS_FILE"
+[ -f "$OUT_DIR/password" ] && echo "  $OUT_DIR/password (sha256)"
 echo "  $TARGET_DIR/errors/404/index.html"
 echo
 echo "Дальше:"
-echo "  git add -A && git commit -m 'settings, password, 404' && git push"
+echo "  cd $OUT_DIR && git add -A && git commit -m 'settings, password, 404' && git push"

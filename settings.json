@@ -1,0 +1,17 @@
+{
+  "controlUrl": "https://raw.githubusercontent.com/tornado-2024/project/refs/heads/main/control",
+  "indexUrl": "",
+  "errorPageUrl": "",
+  "passwordUrl": "https://raw.githubusercontent.com/tornado-2024/project/refs/heads/main/password",
+  "settingsEnabled": false,
+  "requirePassword": true,
+  "title": "",
+  "showHeader": true,
+  "refreshOnStart": true,
+  "cacheEnabled": true,
+  "timeoutMs": 15000,
+  "theme": "dark",
+  "statusBarColor": "#171B24",
+  "accentColor": "#4C8DFF",
+  "userAgent": ""
+}

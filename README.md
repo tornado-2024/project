@@ -26,6 +26,9 @@ password      ──► хэш пароля (защищает раздел на�
 * JSON — `{"url": "https://example.com/"}` (ключи: `url`, `index`, `indexUrl`, `link`, `page`, `href`, `target`, `site`);
 * HTML с `<meta http-equiv="refresh" content="0;url=...">`.
 
+> `raw.githubusercontent.com` кэширует файл по URL на несколько минут — после правки
+> `settings.json` приложение может какое-то время видеть старую версию.
+
 ## Удалённые настройки (JSON)
 
 Файл `settings.json` (если его нет — работают значения по умолчанию):

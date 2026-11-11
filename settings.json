@@ -7,7 +7,7 @@
   "settingsEnabled": false,
   "requirePassword": true,
   "title": "",
-  "showHeader": true,
+  "showHeader": false,
   "refreshOnStart": true,
   "cacheEnabled": false,
   "timeoutMs": 15000,

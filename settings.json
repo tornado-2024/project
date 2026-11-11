@@ -9,7 +9,7 @@
   "title": "",
   "showHeader": true,
   "refreshOnStart": true,
-  "cacheEnabled": true,
+  "cacheEnabled": false,
   "timeoutMs": 15000,
   "theme": "dark",
   "statusBarColor": "#171B24",

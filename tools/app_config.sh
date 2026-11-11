@@ -41,6 +41,7 @@ SETTINGS_URL=""
 ERROR_URL=""
 PASSWORD_URL=""
 TITLE=""
+CACHE_MODE=""
 NEW_KEY=0
 KEY_PASS=""
 PACKAGE=""
@@ -67,6 +68,7 @@ while [ $# -gt 0 ]; do
         --error-url)   ERROR_URL="${2:-}"; shift 2 ;;
         --password-url) PASSWORD_URL="${2:-}"; shift 2 ;;
         --title)       TITLE="${2:-}"; shift 2 ;;
+        --cache)       CACHE_MODE="${2:-}"; shift 2 ;;
         --new-key)     NEW_KEY=1; shift ;;
         --key-pass)    KEY_PASS="${2:-}"; shift 2 ;;
         --package)     PACKAGE="${2:-}"; shift 2 ;;

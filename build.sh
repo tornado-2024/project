@@ -17,10 +17,13 @@ BUILD="$ROOT/build"
 
 MODE="release"
 OUT=""
+NO_DEPLOY=0
+SDCARD="/storage/emulated/0"
 for arg in "$@"; do
     case "$arg" in
         --debug) MODE="debug" ;;
         --android10|--sdk29) MODE="android10" ;;
+        --no-deploy) NO_DEPLOY=1 ;;
         -h|--help) sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) OUT="$arg" ;;
     esac
@@ -39,6 +42,8 @@ KS_PASS="tornado"
 KS_ALIAS="control"
 
 say() { printf '\033[1;36m==>\033[0m %s\n' "$*"; }
+ok()  { printf '\033[1;32m[+]\033[0m %s\n' "$*"; }
+warn(){ printf '\033[1;33m[!]\033[0m %s\n' "$*"; }
 
 say "Проверка инструментов"
 for tool in aapt2 javac apksigner keytool jar python3; do
@@ -177,5 +182,28 @@ fi
 
 "${SIGN_CMD[@]}" verify "$OUT"
 
+# Свежий релиз всегда попадает в /sdcard (+ .zip-копия: чистка удаляет *.apk, а .zip не трогает)
+deploy() {
+    local out="$1"
+    [ "$NO_DEPLOY" = "1" ] && return 0
+    [ -d "$SDCARD" ] || { warn "/sdcard недоступен — пропускаю деплой"; return 0; }
+    local base name
+    base="$(basename "$out")"
+    case "$MODE" in
+        debug)     name="TornadoControl-debug.apk" ;;
+        android10) name="TornadoControl-android10.apk" ;;
+        *)         name="TornadoControl.apk" ;;
+    esac
+    if cp -f "$out" "$SDCARD/$name" 2>/dev/null; then
+        cp -f "$out" "$SDCARD/${base%.apk}.zip" 2>/dev/null || true
+        [ "$MODE" = "release" ] && { cp -f "$out" "$SDCARD/app.apk" 2>/dev/null || true; \
+                                   cp -f "$out" "$SDCARD/app.zip" 2>/dev/null || true; }
+        ok "выложено в /sdcard: $name ($(md5sum "$SDCARD/$name" | cut -c1-10)) + ${base%.apk}.zip"
+    else
+        warn "не удалось записать в /sdcard"
+    fi
+}
+
 say "Готово: $OUT"
 ls -lh "$OUT" | awk '{print "  размер:", $5}'
+deploy "$OUT"

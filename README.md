@@ -136,6 +136,43 @@ plain:<пароль открытым текстом>
 <script>console.log(JSON.parse(Android.getSettings()));</script>
 ```
 
+## Скрипты
+
+### `tools/setup_git.sh` — автонастройка git + GitHub
+
+```bash
+bash tools/setup_git.sh --check                       # текущее состояние
+bash tools/setup_git.sh --repo https://github.com/tornado-2024/project.git --login --push
+bash tools/setup_git.sh --repo git@github.com:tornado-2024/project.git --ssh
+```
+
+Что делает:
+* ставит `gh` (GitHub CLI), если его нет;
+* пишет `~/.gitconfig` через `git config --global` (старый файл сохраняется как `~/.gitconfig.bak-*`);
+* определяет GitHub-ник прямо из URL репозитория и подставляет noreply-email
+  вида `<id>+<ник>@users.noreply.github.com` (id берётся с api.github.com);
+* авторизует через PAT (`gh auth login`, токен вводится в терминале) либо генерирует
+  SSH-ключ и печатает публичную часть;
+* добавляет/создаёт `remote origin` (`--create` создаёт репозиторий на GitHub);
+* делает коммит и пушит (`--push`).
+
+Ключи: `--name --email --login --repo --protocol --token-file --branch --visibility
+--create --public --ssh --no-login --push --message --check`.
+
+### `tools/publish_repo_files.sh` — файлы для работы приложения
+
+```bash
+bash tools/publish_repo_files.sh --title "Tornado" --random-password
+bash tools/publish_repo_files.sh --password "мой-пароль" --site-dir ~/site
+```
+
+Создаёт:
+* `settings.json` — удалённые настройки (controlUrl, title, passwordUrl, показ раздела настроек…);
+* `password` — sha256-хэш пароля (сам пароль в репозиторий не попадает; при
+  `--random-password` пароль печатается один раз);
+* `errors/404/index.html` — страница 404 (по умолчанию в текущем каталоге,
+  `--site-dir` — в репозиторий сайта `tornado-2024/site`).
+
 ## Структура проекта
 
 ```
